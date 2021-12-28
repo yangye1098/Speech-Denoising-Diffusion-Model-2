@@ -134,10 +134,10 @@ class GaussianDiffusion(nn.Module):
         if t > 0:
             noise = torch.randn_like(y_t)
             sigma = ((1.0 - self.alphas_cumprod[t-1]) / (1.0 - self.alphas_cumprod[t]) * self.betas[t])**0.5
-            y_t_1 = c1 * (y_t - c2 * predicted)  + sigma * noise
+            y_t_1 = c1 * (y_t - c2 * predicted) + sigma * noise
         else:
             # noise = torch.zeros_like(y_t)
-            # y_t_1 = c1 * (y_t - c2 * predicted)  + sigma * noise
+            # y_t_1 = c1 * (y_t - c2 * predicted) + sigma * noise
             y_t_1 = c1 * (y_t - c2 * predicted)
 
         y_t_1.clamp_(-1., 1.)

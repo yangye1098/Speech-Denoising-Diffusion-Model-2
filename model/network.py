@@ -45,7 +45,6 @@ class PositionalEncoding(nn.Module):
         """
         if noise_level.ndim > 1:
             noise_level = torch.squeeze(noise_level)
-
         N = x.shape[0]
         T = x.shape[2]
 

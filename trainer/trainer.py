@@ -20,6 +20,7 @@ class Trainer(BaseTrainer):
             self.len_epoch = len(self.data_loader)
         else:
             # iteration-based training
+            # or debug purpose
             self.data_loader = inf_loop(data_loader)
             self.len_epoch = len_epoch
 
@@ -32,8 +33,7 @@ class Trainer(BaseTrainer):
 
         # only loss for train
         self.train_metrics = MetricTracker('loss', writer=self.writer)
-        # no loss for validation
-        self.valid_metrics = MetricTracker(*[m.__name__ for m in self.metric_ftns], writer=self.writer)
+        self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
 
     def _train_epoch(self, epoch):
         """
@@ -92,7 +92,8 @@ class Trainer(BaseTrainer):
 
                 # infer from noisy conditional input only
                 output = self.model.infer(noisy)
-
+                loss = self.criterion(output, clean)
+                self.valid_metrics.update('loss', loss.item())
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                 for met in self.metric_ftns:
                     self.valid_metrics.update(met.__name__, met(output, clean))
