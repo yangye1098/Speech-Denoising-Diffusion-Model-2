@@ -34,7 +34,7 @@ def main(config):
     # build model architecture, then print to console
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
     network = config.init_obj('network', module_network)
-    model = config.init_obj('model', module_arch, diffusion, network)
+    model = config.init_obj('arch', module_arch, diffusion, network)
 
     # prepare for (multi-device) GPU training
     model = model.to(device)
