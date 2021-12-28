@@ -1,0 +1,79 @@
+{
+    "name": "Mnist_LeNet",
+    "n_gpu": 0,
+
+    "model": {
+        "type": "SDDM",
+        "args": {}
+    },
+
+    "diffusion": {
+        "type": "GaussianDiffusion",
+        "args": {
+            "schedule": "linear",
+            "n_timestep": 1000,
+            "linear_start": 1e-4,
+            "linear_end": 2e-2
+        }
+    },
+    "network": {
+        "type": "DenoiseWaveGrad1",
+        "args": {
+            "params": {}
+        }
+    },
+
+    "tr_dataset": {
+        "type": "AudioDataset",
+        "args":{
+            "data_root": "data/wsj0_si_tr_0",
+            "snr": 0,
+            "T": -1,
+            "sample_rate": 8000,
+            "sound_type": ".wav"
+        }
+    },
+    "val_dataset": {
+        "type": "AudioDataset",
+        "args":{
+            "data_root": "data/wsj0_si_val_0",
+            "snr": 0,
+            "T": -1,
+            "sample_rate": 8000,
+            "sound_type": ".wav"
+        }
+    },
+    "data_loader": {
+        "type": "AudioDataLoader",
+        "args":{
+            "batch_size": 8,
+            "shuffle": true,
+            "validation_split": 0.0,
+            "num_workers": 2
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.001,
+            "weight_decay": 0,
+            "amsgrad": true
+        }
+    },
+    "loss": "l1_loss",
+    "metrics": [
+        "sisnr"
+    ],
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}
