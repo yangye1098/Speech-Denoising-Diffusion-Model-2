@@ -1,0 +1,72 @@
+{
+    "name": "WaveGrad_replication",
+    "n_gpu": 0,
+
+    "model": {
+        "type": "SDDM",
+        "args": {}
+    },
+
+    "diffusion": {
+        "type": "GaussianDiffusion",
+        "args": {
+            "schedule": "linear",
+            "n_timestep": 1000,
+            "linear_start": 1e-6,
+            "linear_end": 0.01
+        }
+    },
+    "network": {
+        "type": "WaveGrad",
+        "args": {
+            "params": {}
+        }
+    },
+
+    "tr_dataset": {
+        "type": "AudioDataset",
+        "args":{
+            "data_root": "data/wsj0_si_tr_0",
+            "snr": 0,
+            "T": -1,
+            "sample_rate": 8000,
+            "sound_type": ".wav"
+        }
+    },
+    "val_dataset": {
+        "type": "NumpyDataset",
+        "args":{
+            "paths": "data/LibreSpeech"
+        }
+    },
+    "data_loader": {
+        "type": "WaveGradDataLoader",
+        "args":{
+            "batch_size": 8,
+            "hop_samples": 300,
+            "crop_mel_frames": 24
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.0002
+        }
+    },
+    "loss": "l1_loss",
+    "metrics": [
+        "sisnr"
+    ],
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}

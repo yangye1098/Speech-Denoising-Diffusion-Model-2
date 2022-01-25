@@ -44,7 +44,7 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (clean, noisy) in enumerate(self.data_loader):
+        for batch_idx, (clean, noisy, _) in enumerate(self.data_loader):
             clean, noisy = clean.to(self.device), noisy.to(self.device)
             self.optimizer.zero_grad()
             output, noise = self.model(clean, noisy)
@@ -84,7 +84,7 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (clean, noisy) in enumerate(self.valid_data_loader):
+            for batch_idx, (clean, noisy, _) in enumerate(self.valid_data_loader):
                 if batch_idx >= self.n_valid_data_batch:
                     break
 

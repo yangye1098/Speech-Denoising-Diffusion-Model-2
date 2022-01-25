@@ -146,6 +146,52 @@ class DBlock(nn.Module):
         return x + residual
 
 
+class WaveGrad(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        self.params = params
+        self.downsample = nn.ModuleList([
+            Conv1d(1, 32, 5, padding=2),
+            DBlock(32, 128, 2),
+            DBlock(128, 128, 2),
+            DBlock(128, 256, 3),
+            DBlock(256, 512, 5),
+        ])
+        self.film = nn.ModuleList([
+            FiLM(32, 128),
+            FiLM(128, 128),
+            FiLM(128, 256),
+            FiLM(256, 512),
+            FiLM(512, 512),
+        ])
+        self.upsample = nn.ModuleList([
+            UBlock(768, 512, 5, [1, 2, 1, 2]),
+            UBlock(512, 512, 5, [1, 2, 1, 2]),
+            UBlock(512, 256, 3, [1, 2, 4, 8]),
+            UBlock(256, 128, 2, [1, 2, 4, 8]),
+            UBlock(128, 128, 2, [1, 2, 4, 8]),
+        ])
+        self.first_conv = Conv1d(128, 768, 3, padding=1)
+        self.last_conv = Conv1d(128, 1, 3, padding=1)
+
+    def forward(self, audio, spectrogram, noise_scale):
+        x = audio.unsqueeze(1)
+        downsampled = []
+        for film, layer in zip(self.film, self.downsample):
+            x = layer(x)
+            downsampled.append(film(x, noise_scale))
+
+        x = self.first_conv(spectrogram)
+        for layer, (film_shift, film_scale) in zip(self.upsample, reversed(downsampled)):
+            print(x.shape)
+            print(film_shift.shape)
+            x = layer(x, film_shift, film_scale)
+        x = self.last_conv(x)
+        return x
+
+
+
+
 class DenoiseWaveGrad1(nn.Module):
     """
     version 1: naively down sample conditional input x to 512 x 512 using DBlock
