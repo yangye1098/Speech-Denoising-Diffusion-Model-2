@@ -173,20 +173,19 @@ class WaveGrad(nn.Module):
         self.first_conv = Conv1d(128, 768, 3, padding=1)
         self.last_conv = Conv1d(128, 1, 3, padding=1)
 
-    def forward(self, audio, spectrogram, noise_scale):
-        x = audio.unsqueeze(1)
+    def forward(self, spectrogram, audio, noise_scale):
+        #
+        input = audio.unsqueeze(1)
         downsampled = []
         for film, layer in zip(self.film, self.downsample):
-            x = layer(x)
-            downsampled.append(film(x, noise_scale))
+            input = layer(input)
+            downsampled.append(film(input, noise_scale))
 
-        x = self.first_conv(spectrogram)
+        input = self.first_conv(spectrogram)
         for layer, (film_shift, film_scale) in zip(self.upsample, reversed(downsampled)):
-            print(x.shape)
-            print(film_shift.shape)
-            x = layer(x, film_shift, film_scale)
-        x = self.last_conv(x)
-        return x
+            input = layer(input, film_shift, film_scale)
+        output = self.last_conv(input)
+        return torch.squeeze(output)
 
 
 

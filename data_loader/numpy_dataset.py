@@ -57,7 +57,7 @@ class Collator:
 
     audio = np.stack([record['audio'] for record in minibatch if 'audio' in record])
     spectrogram = np.stack([record['spectrogram'] for record in minibatch if 'spectrogram' in record])
-    return torch.from_numpy(audio), torch.from_numpy(spectrogram)
+    return torch.from_numpy(audio), torch.from_numpy(spectrogram), None
 
 
 class WaveGradDataLoader(torch.utils.data.DataLoader):

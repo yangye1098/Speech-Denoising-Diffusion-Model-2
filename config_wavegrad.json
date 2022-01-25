@@ -1,10 +1,12 @@
 {
     "name": "WaveGrad_replication",
-    "n_gpu": null,
+    "n_gpu": 0,
 
-    "model": {
-        "type": "SDDM",
-        "args": {}
+    "arch": {
+        "type": "SDDM_spectrogram",
+        "args": {
+            "hop_samples": 300
+        }
     },
 
     "diffusion": {
@@ -19,26 +21,25 @@
     "network": {
         "type": "WaveGrad",
         "args": {
-            "params": {}
         }
     },
 
     "tr_dataset": {
         "type": "NumpyDataset",
         "args":{
-            "paths": "data/LibreSpeech"
+            "paths": ["/home/yangye/Lab/Diffusion/wavegrad/testData"]
         }
     },
     "val_dataset": {
         "type": "NumpyDataset",
         "args":{
-            "paths": "data/LibreSpeech"
+            "paths": ["/home/yangye/Lab/Diffusion/wavegrad/testData"]
         }
     },
     "data_loader": {
         "type": "WaveGradDataLoader",
         "args":{
-            "batch_size": 8,
+            "batch_size": 2,
             "hop_samples": 300,
             "crop_mel_frames": 24
         }

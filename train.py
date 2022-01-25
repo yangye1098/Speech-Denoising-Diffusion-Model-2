@@ -25,12 +25,17 @@ def main(config):
     logger = config.get_logger('train')
 
     # setup data_loader instances
+
     tr_dataset = config.init_obj('tr_dataset', module_data)
     val_dataset = config.init_obj('val_dataset', module_data)
     tr_data_loader = config.init_obj('data_loader', module_data, tr_dataset)
     val_data_loader = config.init_obj('data_loader', module_data, val_dataset)
 
+    logger.info('Finish initializing datasets')
+    #
     device, device_ids = prepare_device(config['n_gpu'])
+
+    logger.info('Finish preparing gpu')
 
     # build model architecture, then print to console
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
