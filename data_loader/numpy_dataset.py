@@ -61,7 +61,7 @@ class Collator:
 
 
 class WaveGradDataLoader(torch.utils.data.DataLoader):
-    def __init__(self, dataset, batch_size, hop_samples, crop_mel_frames, is_distributed=False):
+    def __init__(self, dataset, batch_size, hop_samples, crop_mel_frames, num_workers, is_distributed=False):
         super().__init__(dataset,
             batch_size=batch_size,
             collate_fn=Collator(hop_samples, crop_mel_frames).collate,
@@ -69,5 +69,5 @@ class WaveGradDataLoader(torch.utils.data.DataLoader):
             sampler=DistributedSampler(dataset) if is_distributed else None,
             pin_memory=True,
             drop_last=True,
-            num_workers=os.cpu_count())
+            num_workers=num_workers)
 
