@@ -147,9 +147,8 @@ class DBlock(nn.Module):
 
 
 class WaveGrad(nn.Module):
-    def __init__(self, params):
+    def __init__(self):
         super().__init__()
-        self.params = params
         self.downsample = nn.ModuleList([
             Conv1d(1, 32, 5, padding=2),
             DBlock(32, 128, 2),
@@ -197,9 +196,8 @@ class DenoiseWaveGrad1(nn.Module):
     version 1: naively down sample conditional input x to 512 x 512 using DBlock
     """
 
-    def __init__(self, params):
+    def __init__(self):
         super().__init__()
-        self.params = params
         self.downsample = nn.ModuleList([
 
             Conv1d(1, 32, 5, padding=2),

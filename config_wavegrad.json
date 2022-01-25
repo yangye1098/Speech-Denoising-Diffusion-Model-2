@@ -1,6 +1,6 @@
 {
     "name": "WaveGrad_replication",
-    "n_gpu": 0,
+    "n_gpu": null,
 
     "model": {
         "type": "SDDM",
@@ -24,13 +24,9 @@
     },
 
     "tr_dataset": {
-        "type": "AudioDataset",
+        "type": "NumpyDataset",
         "args":{
-            "data_root": "data/wsj0_si_tr_0",
-            "snr": 0,
-            "T": -1,
-            "sample_rate": 8000,
-            "sound_type": ".wav"
+            "paths": "data/LibreSpeech"
         }
     },
     "val_dataset": {
