@@ -28,8 +28,15 @@ class NumpyDataset(torch.utils.data.Dataset):
     spectrogram = np.load(spec_filename)
     return {
         'audio': signal[0] / 32767.5,
-        'spectrogram': spectrogram.T
+        'spectrogram': spectrogram.T,
+        'index': idx
     }
+
+  def getName(self, idx):
+      full_filename = self.filenames[idx]
+      _, filename = os.path.split(full_filename)
+
+      return filename.split('.', 1)[0]
 
 
 class Collator:
@@ -44,6 +51,7 @@ class Collator:
       if len(record['spectrogram']) < self.crop_mel_frames:
         del record['spectrogram']
         del record['audio']
+        del record['index']
         continue
 
       start = random.randint(0, record['spectrogram'].shape[0] - self.crop_mel_frames)
@@ -57,7 +65,8 @@ class Collator:
 
     audio = np.stack([record['audio'] for record in minibatch if 'audio' in record])
     spectrogram = np.stack([record['spectrogram'] for record in minibatch if 'spectrogram' in record])
-    return torch.from_numpy(audio), torch.from_numpy(spectrogram), None
+    index = np.stack(record['index'] for record in minibatch if 'index' in record)
+    return torch.from_numpy(audio), torch.from_numpy(spectrogram), index
 
 
 class WaveGradDataLoader(torch.utils.data.DataLoader):
