@@ -73,8 +73,8 @@ def main(config):
             batch_size = condition.shape[0]
             for b in range(batch_size):
                 name = val_dataset.getName(name_index[b])
-                torchaudio.save(output_path/f'{name}.wav', output[b, :, :], sample_rate)
-                torchaudio.save(target_path/f'{name}.wav', target[b, :, :], sample_rate)
+                torchaudio.save(output_path/f'{name}.wav', output[b, :], sample_rate)
+                torchaudio.save(target_path/f'{name}.wav', target[b, :], sample_rate)
 
             # computing loss, metrics on test set
             loss = loss_fn(output, target)
