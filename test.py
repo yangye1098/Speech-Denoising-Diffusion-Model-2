@@ -50,8 +50,7 @@ def main(config):
     metric_fns = [getattr(module_metric, met) for met in config['metrics']]
 
     total_loss = 0.0
-    total_metrics = torch.zeros(len(metric_fns))
-    total_metrics.to(device)
+    total_metrics = torch.zeros(len(metric_fns), device=device)
 
     sample_path = config.save_dir/'samples'
     sample_path.mkdir(parents=True, exist_ok=True)
@@ -81,8 +80,6 @@ def main(config):
             total_loss += loss.item() * batch_size
             for i, metric in enumerate(metric_fns):
                 m = metric(output,target)
-                print(m.device)
-                print(total_metrics.device)
                 total_metrics[i] += m * batch_size
 
     n_samples = len(val_data_loader.sampler)
