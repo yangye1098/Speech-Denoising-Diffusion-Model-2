@@ -24,7 +24,7 @@ class NumpyDataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
     spec_filename = f'{audio_filename}.spec.npy'
-    signal, _ = torchaudio.load(audio_filename)
+    signal, _ = torchaudio.load(audio_filename, normalize=False)
     spectrogram = np.load(spec_filename)
     return {
         'audio': signal[0] / 32767.5,
