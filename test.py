@@ -27,7 +27,7 @@ def main(config):
     sample_rate = config['sample_rate']
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    print(device)
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
     network = config.init_obj('network', module_network)
     model = config.init_obj('arch', module_arch, diffusion, network)
@@ -71,13 +71,12 @@ def main(config):
             # save samples, or do something with output here
             #
             batch_size = condition.shape[0]
-            target = torch.unsqueeze(target, 1)
-            output = torch.unsqueeze(output, 1)
             for b in range(batch_size):
                 name = val_dataset.getName(name_index[b])
-                torchaudio.save(output_path/f'{name}.wav', output[b, :, :].cpu(), sample_rate)
-                torchaudio.save(target_path/f'{name}.wav', target[b, :, :].cpu(), sample_rate)
-
+                torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output[b, :], 0).cpu(), sample_rate)
+                torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target[b, :], 0).cpu(), sample_rate)
+            print(output.device)
+            print(target.device)
             # computing loss, metrics on test set
             loss = loss_fn(output, target)
             total_loss += loss.item() * batch_size
