@@ -52,6 +52,7 @@ def main(config):
 
     total_loss = 0.0
     total_metrics = torch.zeros(len(metric_fns))
+    total_metrics.to(device)
 
     sample_path = config.save_dir/'samples'
     sample_path.mkdir(parents=True, exist_ok=True)
@@ -75,8 +76,6 @@ def main(config):
                 name = val_dataset.getName(name_index[b])
                 torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output[b, :], 0).cpu(), sample_rate)
                 torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target[b, :], 0).cpu(), sample_rate)
-            print(output.device)
-            print(target.device)
             # computing loss, metrics on test set
             loss = loss_fn(output, target)
             total_loss += loss.item() * batch_size
