@@ -64,7 +64,6 @@ def main(config):
                       device=device,
                       data_loader=tr_data_loader,
                       valid_data_loader=val_data_loader,
-                      n_valid_data_batch=2,
                       lr_scheduler=lr_scheduler)
 
     trainer.train()

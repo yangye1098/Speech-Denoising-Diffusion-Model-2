@@ -10,7 +10,8 @@ class Trainer(BaseTrainer):
     Trainer class
     """
     def __init__(self, model, criterion, metric_ftns, optimizer, config, device,
-                 data_loader, valid_data_loader=None, n_valid_data_batch=2, lr_scheduler=None, len_epoch=None):
+                 data_loader, valid_data_loader=None,
+                 lr_scheduler=None, len_epoch=None):
         super().__init__(model, criterion, metric_ftns, optimizer, config)
         self.config = config
         self.device = device
@@ -25,11 +26,12 @@ class Trainer(BaseTrainer):
             self.len_epoch = len_epoch
 
         self.valid_data_loader = valid_data_loader
-        self.n_valid_data_batch = n_valid_data_batch
+        cfg_trainer = config['trainer']
+        self.n_valid_data_batch = cfg_trainer.get('n_valid_data_batch', 2)
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
         # get log step
-        self.log_step = int(np.sqrt(data_loader.batch_size))
+        self.log_step = cfg_trainer.get('log_step', 100)
 
         # only loss for train
         self.train_metrics = MetricTracker('loss', writer=self.writer)

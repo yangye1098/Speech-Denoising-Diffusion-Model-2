@@ -149,12 +149,13 @@ class GaussianDiffusion(nn.Module):
         choose a random diffusion step to calculate loss
         """
         # 0 dim is the batch size
-        b = y_0.size(0)
-        noise_level_sample_shape = np.ones(y_0.ndim, dtype='int')
+        b = y_0.shape[0]
+        noise_level_sample_shape = torch.ones(y_0.ndim, dtype='int')
         noise_level_sample_shape[0] = b
 
         # choose random step for each one in this batch
-        t = np.random.randint(1, self.num_timesteps + 1, size=b)
+        # change to torch
+        t = torch.randint(1, self.num_timesteps + 1, [b], device=y_0.device)
         # sample noise level using uniform distribution
         l_a, l_b = self.sqrt_alphas_cumprod_prev[t - 1], self.sqrt_alphas_cumprod_prev[t]
         noise_level_sample = l_a + torch.rand(b, device=y_0.device) * (l_b - l_a)
