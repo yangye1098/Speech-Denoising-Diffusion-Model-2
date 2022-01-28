@@ -1,8 +1,8 @@
-import numpy as np
 import torch
-from torchvision.utils import make_grid
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker
+import time
+from datetime import timedelta
 
 
 class Trainer(BaseTrainer):
@@ -44,6 +44,7 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
+        self.epoch_start = time.time()
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (clean, noisy, _) in enumerate(self.data_loader):
@@ -55,10 +56,10 @@ class Trainer(BaseTrainer):
             loss.backward()
             self.optimizer.step()
 
-            self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-            self.train_metrics.update('loss', loss.item())
 
             if batch_idx % self.log_step == 0:
+                self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
+                self.train_metrics.update('loss', loss.item())
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
@@ -83,6 +84,8 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains information about validation
         """
+        self.logger.debug('Valid Epoch: {} started at +{.0f}'.format(
+            epoch, time.time()-self.epoch_start))
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
@@ -103,14 +106,21 @@ class Trainer(BaseTrainer):
         # add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins='auto')
+
+        self.logger.debug('Valid Epoch: {} finished at +{.0f}'.format(
+            epoch, time.time()-self.epoch_start))
         return self.valid_metrics.result()
 
     def _progress(self, batch_idx):
-        base = '[{}/{} ({:.0f}%)]'
+        lapsed = time.time() - self.epoch_start
+        base = '[{}/{} | {.0f}s/{}, ({:.0f}%), ]'
         if hasattr(self.data_loader, 'n_samples'):
             current = batch_idx * self.data_loader.batch_size
             total = self.data_loader.n_samples
         else:
             current = batch_idx
             total = self.len_epoch
-        return base.format(current, total, 100.0 * current / total)
+
+        time_left = lapsed * ((total/current) - 1)
+        time_left = timedelta(seconds=time_left)
+        return base.format(current, total, lapsed, time_left, 100.0 * current / total)
