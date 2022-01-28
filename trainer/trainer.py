@@ -57,7 +57,7 @@ class Trainer(BaseTrainer):
             self.optimizer.step()
 
 
-            if batch_idx % self.log_step == 0:
+            if batch_idx>0 and batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.train_metrics.update('loss', loss.item())
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
@@ -84,7 +84,7 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains information about validation
         """
-        self.logger.debug('Valid Epoch: {} started at +{.0f}'.format(
+        self.logger.debug('Valid Epoch: {} started at +{:.0f}s'.format(
             epoch, time.time()-self.epoch_start))
         self.model.eval()
         self.valid_metrics.reset()
@@ -107,13 +107,13 @@ class Trainer(BaseTrainer):
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins='auto')
 
-        self.logger.debug('Valid Epoch: {} finished at +{.0f}'.format(
+        self.logger.debug('Valid Epoch: {} finished at +{:.0f}s'.format(
             epoch, time.time()-self.epoch_start))
         return self.valid_metrics.result()
 
     def _progress(self, batch_idx):
         lapsed = time.time() - self.epoch_start
-        base = '[{}/{} | {.0f}s/{}, ({:.0f}%), ]'
+        base = '[{}/{} | {:.0f}s/{}, ({:.0f}%), ]'
         if hasattr(self.data_loader, 'n_samples'):
             current = batch_idx * self.data_loader.batch_size
             total = self.data_loader.n_samples

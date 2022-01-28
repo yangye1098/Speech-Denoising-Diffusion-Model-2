@@ -150,7 +150,7 @@ class GaussianDiffusion(nn.Module):
         """
         # 0 dim is the batch size
         b = y_0.shape[0]
-        noise_level_sample_shape = torch.ones(y_0.ndim, dtype='int')
+        noise_level_sample_shape = torch.ones(y_0.ndim, dtype=torch.int)
         noise_level_sample_shape[0] = b
 
         # choose random step for each one in this batch
