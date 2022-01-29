@@ -1,5 +1,5 @@
 from torch import nn
 
 
-l1_loss = nn.L1Loss(reduction='sum')
-l2_loss = nn.MSELoss(reduction='sum')
+l1_loss = nn.L1Loss(reduction='mean')
+l2_loss = nn.MSELoss(reduction='mean')

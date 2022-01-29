@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker
 import time
@@ -53,17 +54,20 @@ class Trainer(BaseTrainer):
             output, noise = self.model(clean, noisy)
             # use noise in the loss function instead of clean (y_0)
             loss = self.criterion(output, noise)
+
             loss.backward()
+            grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.params.max_grad_norm)
             self.optimizer.step()
 
 
             if batch_idx>0 and batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.train_metrics.update('loss', loss.item())
-                self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
+                self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Grad Norm: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    loss.item()))
+                    loss.item(),
+                    grad_norm))
 
             if batch_idx == self.len_epoch:
                 break
