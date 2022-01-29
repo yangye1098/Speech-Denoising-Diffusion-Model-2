@@ -14,6 +14,7 @@ import model.network as module_network
 
 from parse_config import ConfigParser
 
+torch.backends.cudnn.benchmark = True
 
 def main(config):
     logger = config.get_logger('test')
