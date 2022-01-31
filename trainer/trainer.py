@@ -33,6 +33,7 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         # get log step
         self.log_step = cfg_trainer.get('log_step', 100)
+        self.max_grad_norm = cfg_trainer.get('max_grad_norm', 1.0)
 
         # only loss for train
         self.train_metrics = MetricTracker('loss', writer=self.writer)
@@ -56,7 +57,7 @@ class Trainer(BaseTrainer):
             loss = self.criterion(output, noise)
 
             loss.backward()
-            grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.params.max_grad_norm)
+            grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
             self.optimizer.step()
 
 
