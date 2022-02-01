@@ -69,6 +69,17 @@ class Collator:
     return torch.from_numpy(audio), torch.from_numpy(spectrogram), index
 
 
+class NumpyDataLoader(torch.utils.data.DataLoader):
+    def __init__(self, dataset, batch_size, num_workers, is_distributed=False):
+        super().__init__(dataset,
+                         batch_size=batch_size,
+                         shuffle=not is_distributed,
+                         sampler=DistributedSampler(dataset) if is_distributed else None,
+                         pin_memory=True,
+                         drop_last=True,
+                         num_workers=num_workers)
+
+
 class WaveGradDataLoader(torch.utils.data.DataLoader):
     def __init__(self, dataset, batch_size, hop_samples, crop_mel_frames, num_workers, is_distributed=False):
         super().__init__(dataset,

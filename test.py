@@ -21,8 +21,8 @@ def main(config):
 
     # setup data_loader instances
 
-    val_dataset = config.init_obj('val_dataset', module_data)
-    val_data_loader = config.init_obj('data_loader', module_data, val_dataset)
+    test_dataset = config.init_obj('test_dataset', module_data)
+    test_data_loader = config.init_obj('test_data_loader', module_data, test_dataset)
     logger.info('Finish initializing datasets')
 
     sample_rate = config['sample_rate']
@@ -62,7 +62,7 @@ def main(config):
     output_path.mkdir(parents=True, exist_ok=True)
 
     with torch.no_grad():
-        for i, (target, condition, name_index) in enumerate(tqdm(val_data_loader)):
+        for i, (target, condition, name_index) in enumerate(tqdm(test_data_loader)):
             target, condition = target.to(device), condition.to(device)
             # infer from conditional input only
             output = model.infer(condition)
@@ -72,7 +72,7 @@ def main(config):
             #
             batch_size = condition.shape[0]
             for b in range(batch_size):
-                name = val_dataset.getName(name_index[b])
+                name = test_dataset.getName(name_index[b])
                 torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output[b, :], 0).cpu(), sample_rate)
                 torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target[b, :], 0).cpu(), sample_rate)
 
@@ -83,7 +83,7 @@ def main(config):
                 m = metric(output,target)
                 total_metrics[i] += m * batch_size
 
-    n_samples = len(val_data_loader.sampler)
+    n_samples = len(test_data_loader.sampler)
     log = {'loss': total_loss / n_samples}
     log.update({
         met.__name__: total_metrics[i].item() / n_samples for i, met in enumerate(metric_fns)
