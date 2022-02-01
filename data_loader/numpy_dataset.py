@@ -29,7 +29,6 @@ class NumpyDataset(torch.utils.data.Dataset):
     return {
         'audio': signal[0] / 32767.5,
         'spectrogram': spectrogram.T,
-        'index': idx
     }
 
   def getName(self, idx):
@@ -37,6 +36,31 @@ class NumpyDataset(torch.utils.data.Dataset):
       _, filename = os.path.split(full_filename)
 
       return filename.split('.', 1)[0]
+
+
+class InferDataset(torch.utils.data.Dataset):
+  def __init__(self, paths):
+    super().__init__()
+    self.filenames = []
+    for path in paths:
+      self.filenames += glob(f'{path}/**/*.wav', recursive=True)
+
+  def __len__(self):
+    return len(self.filenames)
+
+  def __getitem__(self, idx):
+    audio_filename = self.filenames[idx]
+    spec_filename = f'{audio_filename}.spec.npy'
+    signal, _ = torchaudio.load(audio_filename, normalize=False)
+    spectrogram = np.load(spec_filename)
+    return signal[0] / 32767.5, spectrogram
+
+  def getName(self, idx):
+      full_filename = self.filenames[idx]
+      _, filename = os.path.split(full_filename)
+
+      return filename.split('.', 1)[0]
+
 
 
 class Collator:
@@ -65,19 +89,7 @@ class Collator:
 
     audio = np.stack([record['audio'] for record in minibatch if 'audio' in record])
     spectrogram = np.stack([record['spectrogram'] for record in minibatch if 'spectrogram' in record])
-    index = np.stack(record['index'] for record in minibatch if 'index' in record)
-    return torch.from_numpy(audio), torch.from_numpy(spectrogram), index
-
-
-class NumpyDataLoader(torch.utils.data.DataLoader):
-    def __init__(self, dataset, batch_size, num_workers, is_distributed=False):
-        super().__init__(dataset,
-                         batch_size=batch_size,
-                         shuffle=not is_distributed,
-                         sampler=DistributedSampler(dataset) if is_distributed else None,
-                         pin_memory=True,
-                         drop_last=True,
-                         num_workers=num_workers)
+    return torch.from_numpy(audio), torch.from_numpy(spectrogram), None
 
 
 class WaveGradDataLoader(torch.utils.data.DataLoader):
