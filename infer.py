@@ -75,7 +75,7 @@ def main(config):
             #
 
             name = infer_dataset.getName(i)
-            torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output, 0).cpu(), sample_rate)
+            torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(torch.squeeze(output), 0).cpu(), sample_rate)
             torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
 
             # computing loss, metrics on test set
