@@ -66,6 +66,7 @@ def main(config):
         for i in tqdm(range(n_samples)):
             target, condition = infer_dataset.__getitem__(i)
             target, condition = target.to(device), condition.to(device)
+            # dummy batch dimension
             condition = torch.unsqueeze(condition, 0)
             # infer from conditional input only
             output = model.infer(condition)
@@ -75,6 +76,7 @@ def main(config):
             #
 
             name = infer_dataset.getName(i)
+            # remove the batch dimension
             torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(torch.squeeze(output), 0).cpu(), sample_rate)
             torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
 
