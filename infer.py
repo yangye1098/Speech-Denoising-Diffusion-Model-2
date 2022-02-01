@@ -10,6 +10,7 @@ import model.model as module_arch
 
 import model.diffusion as module_diffusion
 import model.network as module_network
+from torch.nn.functional import pad
 
 
 from parse_config import ConfigParser
@@ -76,9 +77,9 @@ def main(config):
             len_output = output.shape[-1]
             len_target = target.shape[-1]
             if len_output < len_target:
-                output = torch.concat([output, torch.zeros(len_target-len_output)], dim=-1)
+                output = pad(output, (0, len_target-len_output), "constant", 0)
             elif len_target < len_output:
-                target = torch.concat([target, torch.zeros(len_output-len_target)], dim=-1)
+                target = pad(target, (0, len_output-len_target), "constant", 0)
 
 
             #
