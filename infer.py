@@ -47,18 +47,26 @@ def main(config):
 
 
     # get function handles of loss and metrics
+    loss_fn = getattr(module_loss, config['loss'])
+    metric_fns = [getattr(module_metric, met) for met in config['metrics']]
+
+    total_loss = 0.0
+    total_metrics = torch.zeros(len(metric_fns), device=device)
 
     sample_path = config.save_dir/'samples'
     sample_path.mkdir(parents=True, exist_ok=True)
 
+    target_path = sample_path/'target'
     output_path = sample_path/'output'
+    target_path.mkdir(parents=True, exist_ok=True)
     output_path.mkdir(parents=True, exist_ok=True)
 
     n_samples = len(infer_dataset)
     with torch.no_grad():
         for i in tqdm(range(n_samples)):
-            condition = infer_dataset.__getitem__(i)
-            condition = condition.to(device)
+            target, condition = infer_dataset.__getitem__(i)
+            target, condition = target.to(device), condition.to(device)
+            condition = torch.unsqueeze(condition, 0)
             # infer from conditional input only
             output = model.infer(condition)
 
@@ -68,8 +76,19 @@ def main(config):
 
             name = infer_dataset.getName(i)
             torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output, 0).cpu(), sample_rate)
+            torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
 
             # computing loss, metrics on test set
+            loss = loss_fn(output, target)
+            total_loss += loss.item()
+            for i, metric in enumerate(metric_fns):
+                total_metrics[i] += metric(output,target)
+
+    log = {'loss': total_loss / n_samples}
+    log.update({
+        met.__name__: total_metrics[i].item() / n_samples for i, met in enumerate(metric_fns)
+    })
+    logger.info(log)
 
 
 if __name__ == '__main__':
