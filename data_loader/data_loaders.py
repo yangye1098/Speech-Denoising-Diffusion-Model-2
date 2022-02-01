@@ -18,15 +18,15 @@ def generate_inventory(path, file_type='.wav'):
 
 
 class AudioDataset(Dataset):
-    def __init__(self, dataroot, datatype, sample_rate=8000, T=-1):
+    def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
         if datatype not in ['.wav', '.spec.npy', '.mel.npy']:
             raise NotImplementedError
         self.datatype = datatype
         self.sample_rate = sample_rate
         self.T = T
 
-        self.clean_path = Path('{}/clean'.format(dataroot))
-        self.noisy_path = Path('{}/noisy'.format(dataroot))
+        self.clean_path = Path('{}/clean'.format(data_root))
+        self.noisy_path = Path('{}/noisy'.format(data_root))
 
         self.inventory = generate_inventory(self.clean_path, datatype)
         self.data_len = len(self.inventory)

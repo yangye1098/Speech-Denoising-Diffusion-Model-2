@@ -2,7 +2,7 @@
     "name": "SDDM2_DenoiseWaveGrad1",
     "n_gpu": 0,
 
-    "model": {
+    "arch": {
         "type": "SDDM",
         "args": {}
     },
@@ -19,7 +19,6 @@
     "network": {
         "type": "DenoiseWaveGrad1",
         "args": {
-            "params": {}
         }
     },
 
@@ -27,20 +26,18 @@
         "type": "AudioDataset",
         "args":{
             "data_root": "data/wsj0_si_tr_0",
-            "snr": 0,
             "T": -1,
             "sample_rate": 8000,
-            "sound_type": ".wav"
+            "datatype": ".wav"
         }
     },
     "val_dataset": {
         "type": "AudioDataset",
         "args":{
             "data_root": "data/wsj0_si_val_0",
-            "snr": 0,
             "T": -1,
             "sample_rate": 8000,
-            "sound_type": ".wav"
+            "datatype": ".wav"
         }
     },
     "data_loader": {
@@ -70,9 +67,11 @@
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
+        "n_valid_data_batch": 1,
+        "log_step": 10,
         
         "monitor": "min val_loss",
-        "early_stop": 10,
+        "early_stop": -1,
 
         "tensorboard": true
     }
