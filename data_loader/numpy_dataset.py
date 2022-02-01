@@ -53,9 +53,8 @@ class InferDataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
     spec_filename = f'{audio_filename}.spec.npy'
-    signal, _ = torchaudio.load(audio_filename, normalize=False)
     spectrogram = np.load(spec_filename)
-    return signal[0] / 32767.5, torch.from_numpy(spectrogram)
+    return torch.from_numpy(spectrogram)
 
   def getName(self, idx):
       full_filename = self.filenames[idx]
