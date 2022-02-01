@@ -39,14 +39,16 @@ class NumpyDataset(torch.utils.data.Dataset):
 
 
 class InferDataset(torch.utils.data.Dataset):
-  def __init__(self, paths):
+  def __init__(self, paths, data_len):
     super().__init__()
     self.filenames = []
+    self.data_len = data_len
     for path in paths:
       self.filenames += glob(f'{path}/**/*.wav', recursive=True)
+    self.filenames = self.filenames[:data_len]
 
   def __len__(self):
-    return len(self.filenames)
+    return self.data_len
 
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
