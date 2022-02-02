@@ -118,12 +118,8 @@ class Trainer(BaseTrainer):
     def _progress(self, batch_idx):
         lapsed = time.time() - self.epoch_start
         base = '[{}/{} | {:.0f}s/{}, ({:.0f}%), ]'
-        if hasattr(self.data_loader, 'n_samples'):
-            current = batch_idx * self.data_loader.batch_size
-            total = self.data_loader.n_samples
-        else:
-            current = batch_idx
-            total = self.len_epoch
+        current = batch_idx
+        total = self.len_epoch
 
         time_left = lapsed * ((total/current) - 1)
         time_left = timedelta(seconds=time_left)
