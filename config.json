@@ -1,7 +1,7 @@
 {
     "name": "SDDM2_DenoiseWaveGrad1",
     "n_gpu": 0,
-
+    "sample_rate": 16000,
     "arch": {
         "type": "SDDM",
         "args": {}
@@ -25,18 +25,16 @@
     "tr_dataset": {
         "type": "AudioDataset",
         "args":{
-            "data_root": "data/wsj0_si_tr_0",
-            "T": -1,
-            "sample_rate": 8000,
+            "data_root": "data/Voicebank-DEMAND/train_28spk",
+            "T": 32000,
             "datatype": ".wav"
         }
     },
     "val_dataset": {
         "type": "AudioDataset",
         "args":{
-            "data_root": "data/wsj0_si_val_0",
-            "T": -1,
-            "sample_rate": 8000,
+            "data_root": "data/Voicebank-DEMAND/test",
+            "T": 32000,
             "datatype": ".wav"
         }
     },

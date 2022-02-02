@@ -21,8 +21,8 @@ def main(config):
 
     # setup data_loader instances
 
-    tr_dataset = config.init_obj('tr_dataset', module_data)
-    val_dataset = config.init_obj('val_dataset', module_data)
+    tr_dataset = config.init_obj('tr_dataset', module_data, sample_rate=config['sample_rate'])
+    val_dataset = config.init_obj('val_dataset', module_data, sample_rate=config['sample_rate'])
     tr_data_loader = config.init_obj('data_loader', module_data, tr_dataset)
     val_data_loader = config.init_obj('data_loader', module_data, val_dataset)
 

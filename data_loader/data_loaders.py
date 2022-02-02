@@ -3,6 +3,7 @@ from base import BaseDataLoader
 import numpy as np
 import torch
 import torchaudio
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from pathlib import Path
 
@@ -23,6 +24,7 @@ class AudioDataset(Dataset):
             raise NotImplementedError
         self.datatype = datatype
         self.sample_rate = sample_rate
+        # number of frame to load
         self.T = T
 
         self.clean_path = Path('{}/clean'.format(data_root))
@@ -37,10 +39,22 @@ class AudioDataset(Dataset):
     def __getitem__(self, index):
 
         if self.datatype == '.wav':
-            clean, sr = torchaudio.load(self.clean_path/self.inventory[index], num_frames=self.T)
-            assert(sr==self.sample_rate)
-            noisy, sr = torchaudio.load(self.noisy_path/self.inventory[index], num_frames=self.T)
+            clean, sr = torchaudio.load(self.clean_path/self.inventory[index])
+            assert(sr == self.sample_rate)
+            noisy, sr = torchaudio.load(self.noisy_path/self.inventory[index])
             assert (sr == self.sample_rate)
+            n_frames = clean.shape[-1]
+            assert (n_frames == noisy.shape[-1])
+
+            if n_frames > self.T:
+                start_frame = torch.randint(0, n_frames - self.T, [1])
+                clean = clean[:, start_frame:(start_frame+self.T)]
+                noisy = noisy[:, start_frame:(start_frame+self.T)]
+            else:
+                clean = F.pad(clean, (0, self.T - n_frames), 'constant', 0)
+                noisy = F.pad(noisy, (0, self.T - n_frames), 'constant', 0)
+
+
         elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
             # load the two grams
             clean = torch.from_numpy(np.load(self.clean_path/self.inventory[index]))

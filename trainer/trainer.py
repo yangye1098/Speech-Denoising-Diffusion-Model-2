@@ -57,18 +57,17 @@ class Trainer(BaseTrainer):
             loss = self.criterion(output, noise)
 
             loss.backward()
-            grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+            #grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
             self.optimizer.step()
 
 
             if batch_idx>0 and batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.train_metrics.update('loss', loss.item())
-                self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Grad Norm: {:.6f}'.format(
+                self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    loss.item(),
-                    grad_norm))
+                    loss.item()))
 
             if batch_idx == self.len_epoch:
                 break
