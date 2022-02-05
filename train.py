@@ -8,7 +8,7 @@ import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
 import model.diffusion as module_diffusion
-import model.network as module_network
+import model.wavegrad as module_network
 from parse_config import ConfigParser
 from trainer import Trainer
 from utils import prepare_device

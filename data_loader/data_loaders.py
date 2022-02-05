@@ -83,6 +83,19 @@ if __name__ == '__main__':
         hasAudio = True
     except ModuleNotFoundError:
         hasAudio = False
+    sample_rate = 16000
+    dataroot = '../data/Voicebank-DEMAND/train_28spk'
+    datatype = '.wav'
+    T = 32000
+    dataset = AudioDataset(dataroot, datatype, sample_rate=sample_rate, T=T)
+    dataloader = AudioDataLoader(dataset, batch_size=2, shuffle=True)
+    clean, noisy, _ = next(iter(dataloader))
+    print(clean.shape)  # should be [2, 1, T]
 
+    play_obj = sa.play_buffer(clean[0, :, :].numpy(), 1, 32 // 8, sample_rate)
+    play_obj.wait_done()
+
+    play_obj = sa.play_buffer(noisy[0, :, :].numpy(), 1, 32 // 8, sample_rate)
+    play_obj.wait_done()
 
 

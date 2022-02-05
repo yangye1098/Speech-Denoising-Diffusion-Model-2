@@ -15,7 +15,6 @@ class Conv1d(nn.Conv1d):
         nn.init.orthogonal_(self.weight)
         nn.init.zeros_(self.bias)
 
-
 class Conv2d(nn.Conv2d):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -146,60 +145,16 @@ class DBlock(nn.Module):
         return x + residual
 
 
-class WaveGrad(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.downsample = nn.ModuleList([
-            Conv1d(1, 32, 5, padding=2),
-            DBlock(32, 128, 2),
-            DBlock(128, 128, 2),
-            DBlock(128, 256, 3),
-            DBlock(256, 512, 5),
-        ])
-        self.film = nn.ModuleList([
-            FiLM(32, 128),
-            FiLM(128, 128),
-            FiLM(128, 256),
-            FiLM(256, 512),
-            FiLM(512, 512),
-        ])
-        self.upsample = nn.ModuleList([
-            UBlock(768, 512, 5, [1, 2, 1, 2]),
-            UBlock(512, 512, 5, [1, 2, 1, 2]),
-            UBlock(512, 256, 3, [1, 2, 4, 8]),
-            UBlock(256, 128, 2, [1, 2, 4, 8]),
-            UBlock(128, 128, 2, [1, 2, 4, 8]),
-        ])
-        self.first_conv = Conv1d(128, 768, 3, padding=1)
-        self.last_conv = Conv1d(128, 1, 3, padding=1)
-
-    def forward(self, spectrogram, audio, noise_scale):
-        #
-        input = audio.unsqueeze(1)
-        downsampled = []
-        for film, layer in zip(self.film, self.downsample):
-            input = layer(input)
-            downsampled.append(film(input, noise_scale))
-
-        input = self.first_conv(spectrogram)
-        for layer, (film_shift, film_scale) in zip(self.upsample, reversed(downsampled)):
-            input = layer(input, film_shift, film_scale)
-        output = self.last_conv(input)
-        return torch.squeeze(output)
-
-
-
-
-class DenoiseWaveGrad1(nn.Module):
+class DenoiseWaveGrad2D(nn.Module):
     """
-    version 1: naively down sample conditional input x to 512 x 512 using DBlock
+    concate y_t and x input. use 2d conv layers instead of 1d
     """
 
     def __init__(self):
         super().__init__()
         self.downsample = nn.ModuleList([
 
-            Conv1d(1, 32, 5, padding=2),
+            Conv2d(2, 32, 5, padding=2),
             DBlock(32, 128, 2),
             DBlock(128, 128, 2),
             DBlock(128, 256, 4),
@@ -249,3 +204,55 @@ class DenoiseWaveGrad1(nn.Module):
             up_input = layer(up_input, film_shift, film_scale)
         output = self.last_conv(up_input)
         return output
+
+
+class DenoiseWaveGrad2(nn.Module):
+    """
+    version 2: concat y_t and x
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.downsample = nn.ModuleList([
+
+            Conv1d(2, 32, 5, padding=2),
+            DBlock(32, 128, 2),
+            DBlock(128, 128, 2),
+            DBlock(128, 256, 4),
+            DBlock(256, 512, 5),
+        ])
+
+        self.film = nn.ModuleList([
+            FiLM(32, 128),
+            FiLM(128, 128),
+            FiLM(128, 256),
+            FiLM(256, 512),
+            FiLM(512, 512),
+        ])
+        self.upsample = nn.ModuleList([
+            UBlock(512, 512, 5, [1, 2, 1, 2]),
+            UBlock(512, 512, 5, [1, 2, 1, 2]),
+            UBlock(512, 256, 4, [1, 2, 4, 8]),
+            UBlock(256, 128, 2, [1, 2, 4, 8]),
+            UBlock(128, 128, 2, [1, 2, 4, 8]),
+        ])
+        self.last_conv = Conv1d(128, 1, 3, padding=1)
+
+    def forward(self, x, y_t, noise_level):
+
+        input_yt = y_t
+        downsampled = []
+        for film, layer in zip(self.film, self.downsample):
+            input_yt = layer(input_yt)
+            downsampled.append(film(input_yt, noise_level))
+
+        input_x = x
+        for layer in self.downsample_x:
+            input_x = layer(input_x)
+
+        up_input = input_x
+        for layer, (film_shift, film_scale) in zip(self.upsample, reversed(downsampled)):
+            up_input = layer(up_input, film_shift, film_scale)
+        output = self.last_conv(up_input)
+        return output
+
