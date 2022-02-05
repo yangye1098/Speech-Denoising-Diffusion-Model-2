@@ -86,7 +86,7 @@ if __name__ == '__main__':
     sample_rate = 16000
     dataroot = '../data/Voicebank-DEMAND/train_28spk'
     datatype = '.wav'
-    T = 32000
+    T = 7200
     dataset = AudioDataset(dataroot, datatype, sample_rate=sample_rate, T=T)
     dataloader = AudioDataLoader(dataset, batch_size=2, shuffle=True)
     clean, noisy, _ = next(iter(dataloader))

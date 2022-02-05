@@ -302,7 +302,7 @@ class DenoiseWaveGrad3(nn.Module):
             Conv1d(2, 32, 5, padding=2),
             DBlock(32, 128, 2),
             DBlock(128, 128, 2),
-            DBlock(128, 256, 4),
+            DBlock(128, 256, 3),
             DBlock(256, 512, 5),
         ])
 
@@ -318,7 +318,7 @@ class DenoiseWaveGrad3(nn.Module):
         self.upsample = nn.ModuleList([
             UBlock(512, 512, 5, [1, 2, 1, 2]),
             UBlock(512, 512, 5, [1, 2, 1, 2]),
-            UBlock(512, 256, 4, [1, 2, 4, 8]),
+            UBlock(512, 256, 3, [1, 2, 4, 8]),
             UBlock(256, 128, 2, [1, 2, 4, 8]),
             UBlock(128, 128, 2, [1, 2, 4, 8]),
         ])
