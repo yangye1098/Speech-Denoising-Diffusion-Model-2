@@ -12,8 +12,9 @@ from torch.utils.data.distributed import DistributedSampler
 
 
 class NumpyDataset(torch.utils.data.Dataset):
-  def __init__(self, paths):
+  def __init__(self, paths, sample_rate=22050):
     super().__init__()
+    self.sample_rate = sample_rate
     self.filenames = []
     for path in paths:
       self.filenames += glob(f'{path}/**/*.wav', recursive=True)
@@ -75,7 +76,6 @@ class Collator:
       if len(record['spectrogram']) < self.crop_mel_frames:
         del record['spectrogram']
         del record['audio']
-        del record['index']
         continue
 
       start = random.randint(0, record['spectrogram'].shape[0] - self.crop_mel_frames)
