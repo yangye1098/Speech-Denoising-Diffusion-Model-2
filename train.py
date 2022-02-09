@@ -1,13 +1,13 @@
 import argparse
 import collections
 import torch
-# import data_loader.data_loaders as module_data
-import data_loader.numpy_dataset as module_data
+import data_loader.data_loaders as module_data
+# import data_loader.numpy_dataset as module_data
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
 import model.diffusion as module_diffusion
-import model.wavegrad as module_network
+import model.network as module_network
 from parse_config import ConfigParser
 from trainer import Trainer
 from utils import prepare_device
@@ -20,8 +20,8 @@ def main(config):
 
     # setup data_loader instances
 
-    tr_dataset = config.init_obj('tr_dataset', module_data, sample_rate=config['sample_rate'])
-    val_dataset = config.init_obj('val_dataset', module_data, sample_rate=config['sample_rate'])
+    tr_dataset = config.init_obj('tr_dataset', module_data, sample_rate=config['sample_rate'], T=config['num_samples'])
+    val_dataset = config.init_obj('val_dataset', module_data, sample_rate=config['sample_rate'], T=config['num_samples'])
     tr_data_loader = config.init_obj('data_loader', module_data, tr_dataset)
     val_data_loader = config.init_obj('data_loader', module_data, val_dataset)
 
@@ -33,7 +33,7 @@ def main(config):
 
     # build model architecture, then print to console
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network)
+    network = config.init_obj('network', module_network, input_size=config['num_samples'])
     network = network.to(device)
     model = config.init_obj('arch', module_arch, diffusion, network)
 

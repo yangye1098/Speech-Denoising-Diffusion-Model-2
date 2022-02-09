@@ -247,34 +247,48 @@ class DenoiseWaveGrad2(nn.Module):
     version 2: concat y_t and x, use conv1d, change input size to 2
              : the first up sample uses scale factor of 1
 
+    version 2.1: increase depth, change resample factor
+
     """
 
     def __init__(self):
         super().__init__()
         self.downsample = nn.ModuleList([
 
-            Conv1d(2, 32, 5, padding=2),
-            DBlock(32, 128, 2),
-            DBlock(128, 128, 2),
-            DBlock(128, 256, 4),
-            DBlock(256, 512, 5),
+            Conv1d(2, 4, 5, padding=2),
+            DBlock(4, 8, 2),
+            DBlock(8, 16, 2),
+            DBlock(16, 32, 2),
+            DBlock(32, 64, 2),
+            DBlock(64, 128, 2),
+            DBlock(128, 256, 2),
+            DBlock(256, 512, 2),
+            DBlock(512, 512, 2),
         ])
 
         self.film = nn.ModuleList([
-            FiLM(32, 128),
-            FiLM(128, 128),
+            FiLM(4, 8),
+            FiLM(8, 16),
+            FiLM(16, 32),
+            FiLM(32, 64),
+            FiLM(64, 128),
             FiLM(128, 256),
             FiLM(256, 512),
             FiLM(512, 512),
+            FiLM(512, 512),
         ])
         self.upsample = nn.ModuleList([
-            UBlock(512, 512, 1, [1, 2, 1, 2]),
-            UBlock(512, 512, 5, [1, 2, 1, 2]),
-            UBlock(512, 256, 4, [1, 2, 4, 8]),
+            UBlock(512, 512, 1, [1, 2, 4, 8]),
+            UBlock(512, 512, 2, [1, 2, 4, 8]),
+            UBlock(512, 512, 2, [1, 2, 4, 8]),
+            UBlock(512, 256, 2, [1, 2, 4, 8]),
             UBlock(256, 128, 2, [1, 2, 4, 8]),
-            UBlock(128, 128, 2, [1, 2, 4, 8]),
+            UBlock(128, 64, 2, [1, 2, 4, 8]),
+            UBlock(64, 32, 2, [1, 2, 4, 8]),
+            UBlock(32, 16, 2, [1, 2, 4, 8]),
+            UBlock(16, 8, 2, [1, 2, 4, 8]),
         ])
-        self.last_conv = Conv1d(128, 1, 3, padding=1)
+        self.last_conv = Conv1d(8, 1, 3, padding=1)
 
     def forward(self, x, y_t, noise_level):
 
