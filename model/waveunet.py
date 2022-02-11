@@ -399,6 +399,9 @@ class Waveunet(nn.Module):
         self.check_output_size(input_size)
 
     def check_output_size(self, input_size):
+        if input_size < 0:
+            return
+
         module = self.waveunet
         curr_size = input_size
         for idx, block in enumerate(module.downsampling_blocks):

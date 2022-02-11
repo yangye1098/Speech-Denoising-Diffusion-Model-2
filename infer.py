@@ -22,15 +22,16 @@ def main(config):
 
     # setup data_loader instances
 
-    infer_dataset = config.init_obj('infer_dataset', module_data)
+    sample_rate = config['sample_rate']
+
+    infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=-1 )
 
     logger.info('Finish initializing datasets')
 
-    sample_rate = config['sample_rate']
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network)
+    network = config.init_obj('network', module_network, input_size=-1)
     model = config.init_obj('arch', module_arch, diffusion, network)
     # prepare model for testing
     model = model.to(device)
