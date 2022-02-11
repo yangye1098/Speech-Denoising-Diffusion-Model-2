@@ -114,16 +114,17 @@ class BaseTrainer:
             'config': self.config
         }
         checkpoint_last = self.checkpoint_dir/'checkpoint_current.pth'
-        checkpoint_last.rename(self.checkpoint_dir/'checkpoint_last.pth')
+        if checkpoint_last.is_file():
+            checkpoint_last.rename(self.checkpoint_dir/'checkpoint_last.pth')
 
         checkpoint_current = self.checkpoint_dir / 'checkpoint_current.pth'
 
         torch.save(state, checkpoint_current)
-        self.logger.info("Saving checkpoint epoch {}: {} ...".format(epoch, checkpoint_current))
+        self.logger.info("Saving checkpoint epoch {} as checkpoint_current.pth ...".format(epoch))
         if save_best:
-            best_path = str(self.checkpoint_dir / 'model_best.pth')
+            best_path = self.checkpoint_dir / 'model_best.pth'
             torch.save(state, best_path)
-            self.logger.info("Saving current best: model_best.pth ...")
+            self.logger.info("Saving checkpoint epoch {} as model_best.pth ...".format(epoch))
 
     def _resume_checkpoint(self, resume_path):
         """
