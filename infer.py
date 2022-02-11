@@ -73,6 +73,7 @@ def main(config):
             # infer from conditional input only
             output = model.infer(condition)
             output = torch.squeeze(output)
+            target = torch.squeeze(target)
 
             # zero pad the shorter sample to the same length
             len_output = output.shape[-1]
@@ -87,8 +88,8 @@ def main(config):
             # save samples, or do something with output here
             name = infer_dataset.getName(i)
             # remove the batch dimension
-            torchaudio.save(output_path/f'{name}.wav', output.cpu(), sample_rate)
-            torchaudio.save(target_path/f'{name}.wav', target.cpu(), sample_rate)
+            torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output, 0).cpu(), sample_rate)
+            torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
 
             # computing loss, metrics on test set
 
