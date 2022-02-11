@@ -24,14 +24,14 @@ def main(config):
 
     sample_rate = config['sample_rate']
 
-    infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=-1 )
+    infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=4*config['num_samples'] )
 
     logger.info('Finish initializing datasets')
 
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network, input_size=-1)
+    network = config.init_obj('network', module_network, input_size=4*config['num_samples'])
     model = config.init_obj('arch', module_arch, diffusion, network)
     # prepare model for testing
     model = model.to(device)
@@ -39,7 +39,7 @@ def main(config):
     logger.info(model)
 
     logger.info('Loading checkpoint: {} ...'.format(config.resume))
-    checkpoint = torch.load(config.resume)
+    checkpoint = torch.load(config.resume, map_location=device)
     state_dict = checkpoint['state_dict']
 
     if config['n_gpu'] > 1:

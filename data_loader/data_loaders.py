@@ -46,11 +46,12 @@ class AudioDataset(Dataset):
             n_frames = clean.shape[-1]
             assert (n_frames == noisy.shape[-1])
 
-            if n_frames > self.T:
+            if n_frames > self.T > 0:
                 start_frame = torch.randint(0, n_frames - self.T, [1])
                 clean = clean[:, start_frame:(start_frame+self.T)]
                 noisy = noisy[:, start_frame:(start_frame+self.T)]
-            else:
+
+            elif self.T > n_frames > 0:
                 clean = F.pad(clean, (0, self.T - n_frames), 'constant', 0)
                 noisy = F.pad(noisy, (0, self.T - n_frames), 'constant', 0)
 
