@@ -28,7 +28,6 @@ class Trainer(BaseTrainer):
 
         self.valid_data_loader = valid_data_loader
         cfg_trainer = config['trainer']
-        self.valid_period = cfg_trainer.get('valid_period', 10)
         self.n_valid_data_batch = cfg_trainer.get('n_valid_data_batch', 2)
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
