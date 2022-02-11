@@ -66,7 +66,7 @@ def main(config):
     n_samples = len(infer_dataset)
     with torch.no_grad():
         for i in tqdm(range(n_samples)):
-            target, condition = infer_dataset.__getitem__(i)
+            target, condition, _ = infer_dataset.__getitem__(i)
             target, condition = target.to(device), condition.to(device)
             # dummy batch dimension
             condition = torch.unsqueeze(condition, 0)
