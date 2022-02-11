@@ -28,7 +28,7 @@ class Trainer(BaseTrainer):
 
         self.valid_data_loader = valid_data_loader
         cfg_trainer = config['trainer']
-        self.valid_frequency = cfg_trainer.get('valid_frequency', 10)
+        self.valid_period = cfg_trainer.get('valid_period', 10)
         self.n_valid_data_batch = cfg_trainer.get('n_valid_data_batch', 2)
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
@@ -73,7 +73,7 @@ class Trainer(BaseTrainer):
                 break
         log = self.train_metrics.result()
 
-        if self.do_validation and (epoch % self.valid_frequency == 0):
+        if self.do_validation and (epoch % self.valid_period == 0):
             val_log = self._valid_epoch(epoch)
             log.update(**{'val_'+k : v for k, v in val_log.items()})
 
