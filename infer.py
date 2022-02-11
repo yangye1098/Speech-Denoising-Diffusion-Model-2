@@ -60,8 +60,10 @@ def main(config):
 
     target_path = sample_path/'target'
     output_path = sample_path/'output'
+    condition_path = sample_path/'condtion'
     target_path.mkdir(parents=True, exist_ok=True)
     output_path.mkdir(parents=True, exist_ok=True)
+    condition_path.mkdir(parents=True, exist_ok=True)
 
     n_samples = len(infer_dataset)
     with torch.no_grad():
@@ -72,16 +74,10 @@ def main(config):
             condition = torch.unsqueeze(condition, 0)
             # infer from conditional input only
             output = model.infer(condition)
+
             output = torch.squeeze(output)
             target = torch.squeeze(target)
-
-            # zero pad the shorter sample to the same length
-            len_output = output.shape[-1]
-            len_target = target.shape[-1]
-            if len_output < len_target:
-                output = pad(output, (0, len_target-len_output), "constant", 0)
-            elif len_target < len_output:
-                target = pad(target, (0, len_output-len_target), "constant", 0)
+            condition = torch.squeeze(condition)
 
 
             #
@@ -90,6 +86,7 @@ def main(config):
             # remove the batch dimension
             torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output, 0).cpu(), sample_rate)
             torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
+            torchaudio.save(condition_path/f'{name}.wav', torch.unsqueeze(condition, 0).cpu(), sample_rate)
 
             # computing loss, metrics on test set
 
