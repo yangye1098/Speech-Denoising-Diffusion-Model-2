@@ -389,7 +389,7 @@ class Waveunet3(nn.Module):
         """
 
         if noise_level.ndim < 3:
-            noise_level = torch.unsqueeze(noise_level, 1)
+            noise_level = torch.unsqueeze(noise_level, -1)
 
         if self.noise_level_mlp is not None:
             noise_level = self.noise_level_mlp(noise_level)
