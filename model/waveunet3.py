@@ -259,7 +259,6 @@ class UpsamplingBlock(nn.Module):
         # Combine  features
         for block in self.post_shortcut:
             combined = block(combined, noise_level)
-        print(combined.shape)
         return combined
 
     def get_output_size(self, input_size):
@@ -407,11 +406,8 @@ class Waveunet3(nn.Module):
             out = block(out, noise_level)
 
         # UPSAMPLING BLOCKS
-        print(len(shorts))
-        print(len(module.upsampling_blocks))
         for block, short in zip(module.upsampling_blocks, reversed(shorts)):
             out = block(out, short, noise_level)
-            print(out.shape)
 
         # OUTPUT CONV
         out = module.output_conv(out)
