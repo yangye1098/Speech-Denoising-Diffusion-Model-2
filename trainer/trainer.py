@@ -87,6 +87,7 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains information about validation
         """
+        self.logger.debug('')
         self.logger.debug('Valid Epoch: {} started at +{:.0f}s'.format(
             epoch, time.time()-self.epoch_start))
         self.model.eval()

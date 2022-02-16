@@ -33,7 +33,8 @@ def main(config):
 
     # build model architecture, then print to console
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network, input_size=config['num_samples'])
+    network = config.init_obj('network', module_network)
+    network.check_output_size(config['num_samples'])
     network = network.to(device)
     model = config.init_obj('arch', module_arch, diffusion, network)
 
