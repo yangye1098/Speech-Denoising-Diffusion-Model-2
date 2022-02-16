@@ -111,7 +111,7 @@ class Trainer(BaseTrainer):
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins='auto')
 
-        self.logger.debug('Valid Epoch: {} finished at +{:.0f}s'.format(
+        self.logger.debug('\nValid Epoch: {} finished at +{:.0f}s'.format(
             epoch, time.time()-self.epoch_start))
         return self.valid_metrics.result()
 
