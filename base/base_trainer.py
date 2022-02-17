@@ -78,18 +78,19 @@ class BaseTrainer:
                     # check whether model performance improved or not, according to specified metric(mnt_metric)
                     improved = (self.mnt_mode == 'min' and log[self.mnt_metric] <= self.mnt_best) or \
                                (self.mnt_mode == 'max' and log[self.mnt_metric] >= self.mnt_best)
-                except KeyError:
-                    improved = False
+                    if improved:
+                        self.mnt_best = log[self.mnt_metric]
+                        not_improved_count = 0
+                        best = True
+                    else:
+                        not_improved_count += 1
 
-                if improved:
-                    self.mnt_best = log[self.mnt_metric]
-                    not_improved_count = 0
-                    best = True
-                else:
-                    not_improved_count += 1
+                except KeyError:
+                    pass
+
 
                 if not_improved_count > self.early_stop:
-                    self.logger.info("Validation performance didn\'t improve for {} epochs. "
+                    self.logger.info("Validation performance didn\'t improve for {} validation. "
                                      "Training stops.".format(self.early_stop))
                     break
 

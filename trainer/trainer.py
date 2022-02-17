@@ -1,9 +1,9 @@
 import torch
-from torch import nn
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker
 import time
 from datetime import timedelta
+import torchaudio
 
 
 class Trainer(BaseTrainer):
@@ -39,6 +39,17 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
 
+        # audio sample dir
+        sample_path = config.save_dir / 'samples'
+        sample_path.mkdir(parents=True, exist_ok=True)
+
+        self.target_path = sample_path / 'target'
+        self.output_path = sample_path / 'output'
+        self.condition_path = sample_path / 'condtion'
+        self.target_path.mkdir(parents=True, exist_ok=True)
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        self.condition_path.mkdir(parents=True, exist_ok=True)
+
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
@@ -50,11 +61,11 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
 
-        for batch_idx, (clean, noisy, _) in enumerate(self.data_loader):
-            clean, noisy = clean.to(self.device), noisy.to(self.device)
+        for batch_idx, (target, condition, _) in enumerate(self.data_loader):
+            target, condition = target.to(self.device), condition.to(self.device)
             self.optimizer.zero_grad()
-            output, noise = self.model(clean, noisy)
-            # use noise in the loss function instead of clean (y_0)
+            output, noise = self.model(target, condition)
+            # use noise in the loss function instead of target (y_0)
             loss = self.criterion(output, noise)
 
             loss.backward()
@@ -94,19 +105,25 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (clean, noisy, _) in enumerate(self.valid_data_loader):
+            for batch_idx, (target, condition, _) in enumerate(self.valid_data_loader):
                 if batch_idx >= self.n_valid_data_batch:
                     break
 
-                clean, noisy = clean.to(self.device), noisy.to(self.device)
+                target, condition = target.to(self.device), condition.to(self.device)
 
                 # infer from noisy conditional input only
-                output = self.model.infer(noisy)
-                loss = self.criterion(output, clean)
+                output = self.model.infer(condition)
+                loss = self.criterion(output, target)
                 self.valid_metrics.update('loss', loss.item())
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(output, clean))
+                    self.valid_metrics.update(met.__name__, met(output, target))
+
+                # save the validation output
+                for i in range(target.shape[0]):
+                    torchaudio.save(self.output_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(output[i,:,:]), 0).cpu(), self.config['sample_rate'])
+                    torchaudio.save(self.target_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(target[i,:,:]), 0).cpu(), self.config['sample_rate'])
+                    torchaudio.save(self.condition_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(condition[i,:,:]), 0).cpu(), self.config['sample_rate'])
 
         # add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():
