@@ -79,6 +79,8 @@ class AudioDataLoader(BaseDataLoader):
 
 
 class InferDataset(AudioDataLoader):
+    def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
+        super().__init__(data_root, datatype, sample_rate, T)
 
     def __getitem__(self, index):
 
