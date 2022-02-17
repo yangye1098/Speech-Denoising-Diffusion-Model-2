@@ -17,6 +17,7 @@ from parse_config import ConfigParser
 
 torch.backends.cudnn.benchmark = True
 
+
 def main(config):
     logger = config.get_logger('infer')
 
@@ -24,14 +25,14 @@ def main(config):
 
     sample_rate = config['sample_rate']
 
-    infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=4*config['num_samples'] )
+    infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=config['num_samples'] )
 
     logger.info('Finish initializing datasets')
 
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network, input_size=4*config['num_samples'])
+    network = config.init_obj('network', module_network)
     model = config.init_obj('arch', module_arch, diffusion, network)
     # prepare model for testing
     model = model.to(device)
@@ -71,7 +72,6 @@ def main(config):
             target, condition, _ = infer_dataset.__getitem__(i)
             target, condition = target.to(device), condition.to(device)
             # dummy batch dimension
-            condition = torch.unsqueeze(condition, 0)
             # infer from conditional input only
             output = model.infer(condition)
 
@@ -79,14 +79,16 @@ def main(config):
             target = torch.squeeze(target)
             condition = torch.squeeze(condition)
 
-
             #
             # save samples, or do something with output here
             name = infer_dataset.getName(i)
             # remove the batch dimension
-            torchaudio.save(output_path/f'{name}.wav', torch.unsqueeze(output, 0).cpu(), sample_rate)
-            torchaudio.save(target_path/f'{name}.wav', torch.unsqueeze(target, 0).cpu(), sample_rate)
-            torchaudio.save(condition_path/f'{name}.wav', torch.unsqueeze(condition, 0).cpu(), sample_rate)
+            # stack back to full audio
+
+            torchaudio.save(output_path/f'{name}.wav', output.view(1, -1).cpu(), sample_rate)
+            torchaudio.save(target_path/f'{name}.wav', target.view(1, -1).cpu(), sample_rate)
+            torchaudio.save(condition_path/f'{name}.wav', condition.view(1, -1).cpu(), sample_rate)
+
 
             # computing loss, metrics on test set
 

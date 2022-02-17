@@ -6,6 +6,7 @@ import torchaudio
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 from pathlib import Path
+from math import ceil
 
 
 def generate_inventory(path, file_type='.wav'):
@@ -75,6 +76,33 @@ class AudioDataLoader(BaseDataLoader):
     def __init__(self, dataset,  batch_size, shuffle=True, validation_split=0.0, num_workers=1):
         self.dataset =dataset
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+
+
+class InferDataset(AudioDataLoader):
+
+    def __getitem__(self, index):
+
+        if self.datatype == '.wav':
+            clean, sr = torchaudio.load(self.clean_path/self.inventory[index])
+            assert(sr == self.sample_rate)
+            noisy, sr = torchaudio.load(self.noisy_path/self.inventory[index])
+            assert (sr == self.sample_rate)
+            n_frames = clean.shape[-1]
+            assert (n_frames == noisy.shape[-1])
+            start_frame = 0
+            n_chunck = ceil(n_frames / self.T)
+
+            clean = F.pad(clean, (0, n_chunck*self.T - n_frames), 'constant', 0)
+            noisy = F.pad(noisy, (0, n_chunck*self.T - n_frames), 'constant', 0)
+
+            clean_stacked = clean.view(n_chunck, 1, self.T)
+            noisy_stacked = noisy.view(n_chunck, 1, self.T)
+
+        elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
+            raise NotImplementedError
+
+        return clean_stacked, noisy_stacked, index
+
 
 
 if __name__ == '__main__':
