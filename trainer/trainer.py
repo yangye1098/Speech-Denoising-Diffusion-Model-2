@@ -49,6 +49,7 @@ class Trainer(BaseTrainer):
         self.epoch_start = time.time()
         self.model.train()
         self.train_metrics.reset()
+
         for batch_idx, (clean, noisy, _) in enumerate(self.data_loader):
             clean, noisy = clean.to(self.device), noisy.to(self.device)
             self.optimizer.zero_grad()

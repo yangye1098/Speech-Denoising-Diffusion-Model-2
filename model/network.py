@@ -2,3 +2,4 @@ from .wavegrad import WaveGrad, DenoiseWaveGrad1, DenoiseWaveGrad2, DenoiseWaveG
 from .waveunet import Waveunet
 from .waveunet2 import Waveunet2
 from .waveunet3 import Waveunet3
+from .UNetModified import UNetModified

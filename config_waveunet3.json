@@ -32,7 +32,7 @@
             "resample_stride": 2,
             "with_noise_level_emb": false,
             "norm_groups": 32,
-            "with_attn": true,
+            "with_attn": false,
             "dropout": 0
         }
     },
