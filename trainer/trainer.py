@@ -114,8 +114,8 @@ class Trainer(BaseTrainer):
                 # infer from noisy conditional input only
                 output = self.model.infer(condition)
                 loss = self.criterion(output, target)
-                self.valid_metrics.update('loss', loss.item())
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
+                self.valid_metrics.update('loss', loss.item())
                 for met in self.metric_ftns:
                     self.valid_metrics.update(met.__name__, met(output, target))
 
@@ -126,8 +126,8 @@ class Trainer(BaseTrainer):
                     torchaudio.save(self.condition_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(condition[i,:,:]), 0).cpu(), self.config['sample_rate'])
 
         # add histogram of model parameters to the tensorboard
-        for name, p in self.model.named_parameters():
-            self.writer.add_histogram(name, p, bins='auto')
+        # for name, p in self.model.named_parameters():
+        #    self.writer.add_histogram(name, p, bins='auto')
 
         self.logger.debug('\nValid Epoch: {} finished at +{:.0f}s'.format(
             epoch, time.time()-self.epoch_start))

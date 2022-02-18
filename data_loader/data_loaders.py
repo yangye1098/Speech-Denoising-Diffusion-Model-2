@@ -65,7 +65,8 @@ class AudioDataset(Dataset):
         return clean, noisy, index
 
     def getName(self, idx):
-        return self.inventory[idx]
+        name = self.inventory[idx].rsplit('.', 1)[0]
+        return name
 
 
 
@@ -102,6 +103,39 @@ class InferDataset(AudioDataset):
             raise NotImplementedError
 
         return clean_stacked, noisy_stacked, index
+
+
+class OutputDataset(AudioDataset):
+    def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
+        if datatype not in ['.wav', '.spec.npy', '.mel.npy']:
+            raise NotImplementedError
+        self.datatype = datatype
+        self.sample_rate = sample_rate
+        # number of frame to load
+        self.T = T
+
+        self.clean_path = Path('{}/target'.format(data_root))
+        self.noisy_path = Path('{}/condition'.format(data_root))
+        self.output_path = Path('{}/output'.format(data_root))
+
+        self.inventory = generate_inventory(self.output_path, datatype)
+        self.inventory = sorted(self.inventory)
+        self.data_len = len(self.inventory)
+
+    def __getitem__(self, index):
+
+        if self.datatype == '.wav':
+            clean, sr = torchaudio.load(self.clean_path/self.inventory[index])
+            assert(sr==self.sample_rate)
+            noisy, sr = torchaudio.load(self.noisy_path/self.inventory[index])
+            assert (sr == self.sample_rate)
+            output, sr = torchaudio.load(self.output_path/self.inventory[index])
+            assert (sr == self.sample_rate)
+        elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
+            raise NotImplementedError
+
+        return clean, noisy, output
+
 
 
 

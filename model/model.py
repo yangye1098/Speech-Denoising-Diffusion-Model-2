@@ -55,7 +55,7 @@ class SDDM(BaseModel):
             return samples
 
         else:
-            for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+            for t in reversed(range(0, self.num_timesteps)):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(tuple(noise_level_sample_shape), device=x.device)
                 predicted = self.denoise_network(x, y_t, noise_level)
                 y_t = self.diffusion.q_transition(y_t, t, predicted)
@@ -94,7 +94,7 @@ class SDDM_spectrogram(SDDM):
             return samples
 
         else:
-            for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+            for t in reversed(range(0, self.num_timesteps)):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(batch_size, device=x.device)
                 predicted = self.denoise_network(x, y_t, noise_level)
                 y_t = self.diffusion.q_transition(y_t, t, predicted)

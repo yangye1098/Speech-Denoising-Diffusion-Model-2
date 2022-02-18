@@ -61,7 +61,7 @@ def main(config):
 
     target_path = sample_path/'target'
     output_path = sample_path/'output'
-    condition_path = sample_path/'condtion'
+    condition_path = sample_path/'condition'
     target_path.mkdir(parents=True, exist_ok=True)
     output_path.mkdir(parents=True, exist_ok=True)
     condition_path.mkdir(parents=True, exist_ok=True)
