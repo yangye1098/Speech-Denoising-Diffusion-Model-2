@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class SignalToFrames(nn.Module):
@@ -12,14 +11,13 @@ class SignalToFrames(nn.Module):
         super().__init__()
 
         assert((n_samples-F) % stride == 0)
-        n_frames = (n_samples - F) // stride + 1
         self.n_samples = n_samples
-        self.n_frames = n_frames
-        self.idx_mat = torch.empty(n_frames, F, dtype=torch.long)
+        self.n_frames = (n_samples - F) // stride + 1
+        self.idx_mat = torch.empty((self.n_frames, F), dtype=torch.long)
         start = 0
-        for i in range(n_frames):
+        for i in range(self.n_frames):
             self.idx_mat[i, :] = torch.arange(start, start+F)
-            start = start + stride
+            start += stride
 
 
     def forward(self, sig):
@@ -37,12 +35,13 @@ class SignalToFrames(nn.Module):
         """
 
         output = torch.zeros((input.shape[0], input.shape[1], self.n_samples), device=input.device)
-        output[:, :, self.idx_mat] += input
+        for i in range(self.n_frames):
+            output[:, :, self.idx_mat[i, :]] += input[:, :, i, :]
 
         return output
 
 class TransformerEncoderLayer(nn.Module):
-    r"""TransformerEncoderLayer is made up of self-attn and feedforward network.
+    """TransformerEncoderLayer is made up of self-attn and feedforward network.
     This standard encoder layer is based on the paper "Attention Is All You Need".
     Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez,
     Lukasz Kaiser, and Illia Polosukhin. 2017. Attention is all you need. In Advances in
@@ -54,10 +53,6 @@ class TransformerEncoderLayer(nn.Module):
         dim_feedforward: the dimension of the feedforward network model (default=2048).
         dropout: the dropout value (default=0.1).
         activation: the activation function of intermediate layer, relu or gelu (default=relu).
-    Examples::
-        >>> encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8)
-        >>> src = torch.rand(10, 32, 512)
-        >>> out = encoder_layer(src)
     """
 
     def __init__(self, d_model, nhead, bidirectional=True, dropout=0, activation="relu"):
@@ -79,16 +74,16 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(dropout)
 
         if activation == "relu":
-            self.activation = F.relu
+            self.activation = nn.functional.relu
         elif activation == "gelu":
-            self.activation = F.gelu
+            self.activation = nn.functional.gelu
         else:
             raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
 
 
     def __setstate__(self, state):
         if 'activation' not in state:
-            state['activation'] = F.relu
+            state['activation'] = nn.functional.relu
         super(TransformerEncoderLayer, self).__setstate__(state)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
@@ -301,3 +296,15 @@ class TSTNN(nn.Module):
         out = self.segment.overlapAdd(out)
 
         return out
+
+
+if __name__ == '__main__':
+    input = torch.Tensor([[[1,2,3,4,5, 6,7,8,9,10]]])
+    segment = SignalToFrames(input.shape[-1], 4, 2)
+    segmented = segment(input)
+    print(segmented)
+    sig = segment.overlapAdd(segmented)
+    print(sig)
+
+
+
