@@ -36,7 +36,7 @@ class SignalToFrames(nn.Module):
             return [B, 1, n_samples]
         """
 
-        output = torch.zeros((input.shape[0], input.shape[1], self.n_samples))
+        output = torch.zeros((input.shape[0], input.shape[1], self.n_samples), device=input.device)
         output[:, :, self.idx_mat] += input
 
         return output
