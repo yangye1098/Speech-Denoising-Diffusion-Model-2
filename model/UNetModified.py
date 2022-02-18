@@ -3,6 +3,44 @@ import torch
 from torch import nn
 
 
+class SignalToFrames(nn.Module):
+    """
+    it is for torch tensor
+    """
+
+    def __init__(self, n_samples, F=512, stride=256):
+        super().__init__()
+
+        assert((n_samples-F) % stride == 0)
+        n_frames = (n_samples - F) // stride + 1
+        self.n_samples = n_samples
+        self.n_frames = n_frames
+        self.idx_mat = torch.empty(n_frames, F, dtype=torch.long)
+        start = 0
+        for i in range(n_frames):
+            self.idx_mat[i, :] = torch.arange(start, start+F)
+            start = start + stride
+
+
+    def forward(self, sig):
+        """
+            sig: [B, 1, n_samples]
+            return: [B, 1, nframes, F]
+        """
+        return sig[:, :, self.idx_mat]
+
+    def overlapAdd(self, input):
+        """
+            reverse the segementation process
+            input [B, 1, n_frames, F]
+            return [B, 1, n_samples]
+        """
+
+        output = torch.zeros((input.shape[0], input.shape[1], self.n_samples), device=input.device)
+        output[:, :, self.idx_mat] += input
+
+        return output
+
 # PositionalEncoding Source： https://github.com/lmnt-com/wavegrad/blob/master/src/wavegrad/model.py
 class PositionalEncoding(nn.Module):
     def __init__(self, dim):
@@ -154,6 +192,7 @@ class ResnetBlocWithAttn(nn.Module):
 class UNetModified(nn.Module):
     def __init__(
         self,
+        num_samples,
         in_channel=2,
         out_channel=1,
         inner_channel=32,
@@ -162,7 +201,8 @@ class UNetModified(nn.Module):
         attn_res=(8),
         res_blocks=3,
         dropout=0,
-        n_segment=128,
+        segment_len=128,
+        segment_stride=64,
         with_noise_level_emb=True,
     ):
         super().__init__()
@@ -183,8 +223,8 @@ class UNetModified(nn.Module):
         pre_channel = inner_channel
         feat_channels = [pre_channel]
 
-        self.n_segment = n_segment
-        now_res = n_segment
+        self.segment = SignalToFrames(num_samples, segment_len, segment_stride)
+        now_res = segment_len
 
         downs = [nn.Conv2d(in_channel, inner_channel,
                            kernel_size=3, padding=1)]
@@ -237,11 +277,11 @@ class UNetModified(nn.Module):
         noise_level = torch.unsqueeze(noise_level, -1)
         b = x.shape[0]
         # naive segmentation
-        x = x.view(b, 1, self.n_segment, -1)
-        y_t = y_t.view(b, 1, self.n_segment, -1)
+
+        x = self.segment(x)
+        y_t = self.segment(y_t)
 
         input = torch.cat([x, y_t], dim=1)
-
         if self.noise_level_mlp is not None:
             t = self.noise_level_mlp(noise_level)
         else:
@@ -252,6 +292,7 @@ class UNetModified(nn.Module):
         feats = []
         for layer in self.downs:
             if isinstance(layer, ResnetBlocWithAttn):
+
                 input = layer(input, t)
             else:
                 input = layer(input)
@@ -270,4 +311,4 @@ class UNetModified(nn.Module):
                 input = layer(input)
 
         output = self.final_conv(input)
-        return output.view(b, 1, -1)
+        return self.segment.overlapAdd(output)
