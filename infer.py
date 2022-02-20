@@ -32,7 +32,7 @@ def main(config):
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network)
+    network = config.init_obj('network', module_network, num_samples=config['num_samples'])
     model = config.init_obj('arch', module_arch, diffusion, network)
     # prepare model for testing
     model = model.to(device)
