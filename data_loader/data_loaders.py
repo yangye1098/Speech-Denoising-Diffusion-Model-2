@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from pathlib import Path
 from math import ceil
+from torch.utils.data.dataloader import default_collate
 
 
 def generate_inventory(path, file_type='.wav'):
@@ -76,7 +77,8 @@ class AudioDataLoader(BaseDataLoader):
     """
     def __init__(self, dataset,  batch_size, shuffle=True, validation_split=0.0, num_workers=1):
         self.dataset =dataset
-        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers, collate_fn)
+
 
 
 class InferDataset(AudioDataset):
@@ -99,10 +101,36 @@ class InferDataset(AudioDataset):
             clean_stacked = clean.view(n_chunck, 1, self.T)
             noisy_stacked = noisy.view(n_chunck, 1, self.T)
 
+            index_tensor = index*torch.ones(n_chunck)
+
         elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
             raise NotImplementedError
 
-        return clean_stacked, noisy_stacked, index
+        return clean_stacked, noisy_stacked, index_tensor
+
+def infer_data_collate(batch):
+
+    for i, (clean_stacked, noisy_stacked, index_tensor) in enumerate(batch):
+        if i == 0:
+            clean_collated = clean_stacked
+            noisy_collated = noisy_stacked
+            index_collated = index_tensor
+        else:
+            clean_collated = torch.cat([clean_collated, clean_stacked], dim=0)
+            noisy_collated = torch.cat([noisy_collated, noisy_stacked], dim=0)
+            index_collated = torch.cat([index_collated, index_tensor], dim=0)
+
+    return clean_collated, noisy_collated, index_collated
+
+
+
+class InferDataLoader(BaseDataLoader):
+    """
+    Load Audio data
+    """
+    def __init__(self, dataset,  batch_size, num_workers=1):
+        self.dataset =dataset
+        super().__init__(self.dataset, batch_size, shuffle=False, validation_split=0, num_workers=num_workers, collate_fn=infer_data_collate)
 
 
 class OutputDataset(AudioDataset):

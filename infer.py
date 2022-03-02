@@ -26,6 +26,7 @@ def main(config):
     sample_rate = config['sample_rate']
 
     infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=config['num_samples'] )
+    infer_data_loader = config.init_obj('infer_data_loader', module_data, infer_dataset)
 
     logger.info('Finish initializing datasets')
 
@@ -68,26 +69,36 @@ def main(config):
 
     n_samples = len(infer_dataset)
     with torch.no_grad():
-        for i in tqdm(range(n_samples)):
-            target, condition, _ = infer_dataset.__getitem__(i)
+        for i, (target, condition, index) in enumerate(infer_data_loader):
             target, condition = target.to(device), condition.to(device)
-            # dummy batch dimension
+
             # infer from conditional input only
+
             output = model.infer(condition)
 
-            output = torch.squeeze(output)
-            target = torch.squeeze(target)
-            condition = torch.squeeze(condition)
-
-            #
             # save samples, or do something with output here
-            name = infer_dataset.getName(i)
-            # remove the batch dimension
-            # stack back to full audio
 
-            torchaudio.save(output_path/f'{name}.wav', output.view(1, -1).cpu(), sample_rate)
-            torchaudio.save(target_path/f'{name}.wav', target.view(1, -1).cpu(), sample_rate)
-            torchaudio.save(condition_path/f'{name}.wav', condition.view(1, -1).cpu(), sample_rate)
+            real_batch_size = target.shape[0]
+            index_temp = []
+            previous_index = -1
+            for b in range(real_batch_size):
+                ind = index[b]
+                if ind == previous_index:
+                    index_temp = index_temp.append(ind)
+                    continue
+                else:
+                    if previous_index > -1:
+                        name = infer_dataset.getName(previous_index)
+                        # stack back to full audio
+                        torchaudio.save(output_path/f'{name}.wav',
+                                        output[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                        torchaudio.save(target_path/f'{name}.wav',
+                                        target[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                        torchaudio.save(condition_path/f'{name}.wav',
+                                        condition[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+
+                    previous_index = ind
+
 
 
             # computing loss, metrics on test set
