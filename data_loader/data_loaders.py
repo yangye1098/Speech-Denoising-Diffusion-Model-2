@@ -101,7 +101,7 @@ class InferDataset(AudioDataset):
             clean_stacked = clean.view(n_chunck, 1, self.T)
             noisy_stacked = noisy.view(n_chunck, 1, self.T)
 
-            index_tensor = index*torch.ones(n_chunck)
+            index_tensor = index*torch.ones(n_chunck, dtype=torch.long)
 
         elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
             raise NotImplementedError
