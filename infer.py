@@ -84,7 +84,7 @@ def main(config):
             for b in range(real_batch_size):
                 ind = index[b]
                 if ind == previous_index:
-                    batch_index_temp = batch_index_temp.append(b)
+                    batch_index_temp.append(b)
                     continue
                 else:
                     if previous_index > -1:
