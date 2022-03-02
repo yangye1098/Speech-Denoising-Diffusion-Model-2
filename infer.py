@@ -97,9 +97,8 @@ def main(config):
                         torchaudio.save(condition_path/f'{name}.wav',
                                         condition[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
 
+                    batch_index_temp = [b]
                     previous_index = ind
-                    batch_index_temp = []
-
 
 
             # computing loss, metrics on test set
