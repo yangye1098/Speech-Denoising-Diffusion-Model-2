@@ -67,9 +67,9 @@ def main(config):
     output_path.mkdir(parents=True, exist_ok=True)
     condition_path.mkdir(parents=True, exist_ok=True)
 
-    n_samples = len(infer_dataset)
+    n_samples = len(infer_data_loader)
     with torch.no_grad():
-        for i, (target, condition, index) in enumerate(infer_data_loader):
+        for i, (target, condition, index) in tqdm(enumerate(infer_data_loader), desc='infer process', total=n_samples):
             target, condition = target.to(device), condition.to(device)
 
             # infer from conditional input only
@@ -79,25 +79,26 @@ def main(config):
             # save samples, or do something with output here
 
             real_batch_size = target.shape[0]
-            index_temp = []
+            batch_index_temp = []
             previous_index = -1
             for b in range(real_batch_size):
                 ind = index[b]
                 if ind == previous_index:
-                    index_temp = index_temp.append(ind)
+                    batch_index_temp = batch_index_temp.append(b)
                     continue
                 else:
                     if previous_index > -1:
                         name = infer_dataset.getName(previous_index)
                         # stack back to full audio
                         torchaudio.save(output_path/f'{name}.wav',
-                                        output[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                                        output[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
                         torchaudio.save(target_path/f'{name}.wav',
-                                        target[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                                        target[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
                         torchaudio.save(condition_path/f'{name}.wav',
-                                        condition[index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                                        condition[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
 
                     previous_index = ind
+                    batch_index_temp = []
 
 
 
