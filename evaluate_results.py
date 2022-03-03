@@ -11,17 +11,6 @@ import argparse
 from parse_config import ConfigParser
 
 
-def main(results_path, config):
-
-    samples_path = Path(results_path)/'samples'
-
-    datatype = config['infer_dataset']['args']['datatype']
-    sample_rate = config['sample_rate']
-
-
-    metrics = {'pesq_wb', 'sisnr', 'stoi'}
-    evaluate(samples_path, datatype, sample_rate, metrics)
-
 def evaluate(samples_path, datatype, sample_rate, metrics):
 
     output_dataset = OutputDataset(samples_path, datatype, sample_rate)
@@ -84,20 +73,3 @@ def loadResults(samples_path, datatype, sample_rate, metrics):
         plt.show(block=False)
 
     plt.show()
-
-
-
-if __name__ == '__main__':
-    args = argparse.ArgumentParser(description='PyTorch Template')
-    args.add_argument('path', type=str,
-                      help = 'result path')
-
-    args = args.parse_args()
-
-    args.config = Path(args.path)/'config.json'
-    args.device = None
-    args.resume = None
-
-    config = ConfigParser.from_args(args)
-    main(args.path, config)
-

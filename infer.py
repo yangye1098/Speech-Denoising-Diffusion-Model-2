@@ -10,8 +10,7 @@ import model.model as module_arch
 
 import model.diffusion as module_diffusion
 import model.network as module_network
-from torch.nn.functional import pad
-
+from .evaluate_results import evaluate
 
 from parse_config import ConfigParser
 
@@ -52,10 +51,8 @@ def main(config):
 
     # get function handles of loss and metrics
     loss_fn = getattr(module_loss, config['loss'])
-    metric_fns = [getattr(module_metric, met) for met in config['metrics']]
 
     total_loss = 0.0
-    total_metrics = torch.zeros(len(metric_fns), device=device)
 
     sample_path = config.save_dir/'samples'
     sample_path.mkdir(parents=True, exist_ok=True)
@@ -105,14 +102,14 @@ def main(config):
 
             loss = loss_fn(output, target)
             total_loss += loss.item()
-            for i, metric in enumerate(metric_fns):
-                total_metrics[i] += metric(output,target)
 
     log = {'loss': total_loss / n_samples}
-    log.update({
-        met.__name__: total_metrics[i].item() / n_samples for i, met in enumerate(metric_fns)
-    })
     logger.info(log)
+
+    # evaluate results
+    metrics = {'pesq_wb', 'sisnr', 'stoi'}
+    datatype = config['infer_dataset']['args']['datatype']
+    evaluate(sample_path, datatype, sample_rate, metrics)
 
 
 if __name__ == '__main__':
