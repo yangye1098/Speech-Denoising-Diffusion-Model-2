@@ -197,7 +197,7 @@ class UNetModified2(nn.Module):
         out_channel=1,
         inner_channel=32,
         norm_groups=32,
-        channel_mults=(1, 2, 4, 8, 8),
+        channel_mults=(2, 3, 4, 5),
         attn_layer=(4),
         res_blocks=3,
         dropout=0,
@@ -225,13 +225,12 @@ class UNetModified2(nn.Module):
 
         # first conv raise # channels to inner_channel
 
-        n_channel_in = in_channel
-        n_channel_out = inner_channel
-        self.downs = nn.ModuleList([nn.Conv2d(n_channel_in, n_channel_out,
+        self.downs = nn.ModuleList([nn.Conv2d(in_channel, inner_channel,
                            kernel_size=3, padding=1)])
 
         # record the number of output channels
-        feat_channels = [n_channel_out]
+        feat_channels = [inner_channel]
+
         n_channel_in = inner_channel
 
         for ind in range(num_mults):
@@ -246,28 +245,35 @@ class UNetModified2(nn.Module):
 
             # doesn't change # channels
             self.downs.append(Downsample(n_channel_in))
-            n_channel_out = n_channel_in
-            feat_channels.append(n_channel_out)
+
 
         n_channel_out = n_channel_in
         self.mid = nn.ModuleList([
                 ResnetBlocWithAttn(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                                    dropout=dropout, with_attn=False)
             ])
-
         self.ups = nn.ModuleList([])
+
+
         for ind in reversed(range(num_mults)):
             use_attn = ind in attn_layer
 
-            n_channel_out = inner_channel * channel_mults[ind]
-            for _ in range(0, res_blocks+1):
+            n_channel_in = inner_channel * channel_mults[ind]
+            self.ups.append(Upsample(n_channel_in))
+
+            if ind == 0:
+                n_channel_out = inner_channel
+            else:
+                n_channel_out = inner_channel * channel_mults[ind-1]
+
+            for _ in range(0, res_blocks):
                 self.ups.append(ResnetBlocWithAttn(
                     n_channel_in+feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                         dropout=dropout, with_attn=use_attn))
                 n_channel_in = n_channel_out
 
-            self.ups.append(Upsample(n_channel_in))
-            n_channel_out = n_channel_in
+
+
 
         n_channel_in = n_channel_out
         self.final_conv = Block(n_channel_in, out_channel, groups=norm_groups)
@@ -297,15 +303,16 @@ class UNetModified2(nn.Module):
         for layer in self.downs:
             if isinstance(layer, ResnetBlocWithAttn):
                 input = layer(input, t)
+                feats.append(input)
             else:
                 input = layer(input)
-            feats.append(input)
 
         for layer in self.mid:
             if isinstance(layer, ResnetBlocWithAttn):
                 input = layer(input, t)
             else:
                 input = layer(input)
+
 
         for layer in self.ups:
             if isinstance(layer, ResnetBlocWithAttn):
