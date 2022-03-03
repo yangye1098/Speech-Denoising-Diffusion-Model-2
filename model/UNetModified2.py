@@ -311,7 +311,6 @@ class UNetModified2(nn.Module):
 
         feats = []
         for layer in self.downs:
-            print(input.shape)
             if isinstance(layer, ResnetBlocWithAttn):
                 input = layer(input, t)
             else:
@@ -323,10 +322,7 @@ class UNetModified2(nn.Module):
                 input = layer(input, t)
             else:
                 input = layer(input)
-        print('after mid', input.shape)
-        print('up')
         for layer in self.ups:
-            print(input.shape)
             if isinstance(layer, ResnetBlocWithAttn):
                 input = layer(torch.cat((input, feats.pop()), dim=1), t)
             else:
