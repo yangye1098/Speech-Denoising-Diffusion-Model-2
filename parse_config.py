@@ -6,6 +6,7 @@ from operator import getitem
 from datetime import datetime
 from logger import setup_logging
 from utils import read_json, write_json
+from argparse import ArgumentParser
 
 
 class ConfigParser:
@@ -55,7 +56,7 @@ class ConfigParser:
         """
         for opt in options:
             args.add_argument(*opt.flags, default=None, type=opt.type)
-        if not isinstance(args, tuple):
+        if isinstance(args, ArgumentParser):
             args = args.parse_args()
 
         if args.device is not None:
