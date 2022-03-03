@@ -11,7 +11,7 @@ import argparse
 from parse_config import ConfigParser
 
 
-def evaluate(samples_path, datatype, sample_rate, metrics):
+def evaluate(samples_path, datatype, sample_rate, metrics, logger):
 
     output_dataset = OutputDataset(samples_path, datatype, sample_rate)
 
@@ -34,8 +34,9 @@ def evaluate(samples_path, datatype, sample_rate, metrics):
                 print(output_dataset.getName(i))
 
     for j, m in enumerate(metrics):
-        print('Average {} for output: {}'.format(m, torch.mean(output_metrics_vec[j, :])))
-        print('Average {} for noisy: {}'.format(m, torch.mean(noisy_metrics_vec[j, :])))
+        logger.info(f'{m}:')
+        logger.info('Average for noisy: {}'.format(torch.mean(noisy_metrics_vec[j, :])))
+        logger.info('Average for output: {}'.format(torch.mean(output_metrics_vec[j, :])))
         torch.save(output_metrics_vec[j, :], samples_path/'output_{}.pt'.format(m))
         torch.save(noisy_metrics_vec[j, :], samples_path/'noisy_{}.pt'.format(m))
 
