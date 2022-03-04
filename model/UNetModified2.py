@@ -146,12 +146,10 @@ class UNetModified2(nn.Module):
         inner_channel=32,
         norm_groups=32,
         channel_mults=(1, 2, 3, 4, 5),
-        attn_layer=(4),
         res_blocks=3,
         dropout=0,
         segment_len=128,
         segment_stride=64,
-        with_noise_level_emb=True,
     ):
         super().__init__()
 
