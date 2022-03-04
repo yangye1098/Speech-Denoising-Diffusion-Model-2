@@ -229,6 +229,7 @@ class UNetModified2(nn.Module):
         feat_channels = [inner_channel]
 
         num_mults = len(channel_mults)
+
         n_channel_in = inner_channel
         for ind in range(num_mults):
             use_attn = (ind in attn_layer)
@@ -238,12 +239,12 @@ class UNetModified2(nn.Module):
             for _ in range(0, res_blocks):
                 self.downs.append(ResnetBlocWithAttn(
                     n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups, dropout=dropout, with_attn=use_attn))
-                # skip connection
                 feat_channels.append(n_channel_out)
                 n_channel_in = n_channel_out
 
             # doesn't change # channels
             self.downs.append(Downsample(n_channel_out))
+            feat_channels.append(n_channel_out)
 
         n_channel_out = n_channel_in
         self.mid = nn.ModuleList([
@@ -258,13 +259,14 @@ class UNetModified2(nn.Module):
 
             n_channel_in = inner_channel * channel_mults[ind]
             n_channel_out = n_channel_in
-#                # combine down sample layer skip connection
-#                self.ups.append(ResnetBlocWithAttn(
-#                    n_channel_in + feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel,
-#                    norm_groups=norm_groups,
-#                    dropout=dropout, with_attn=use_attn))
 
-                # up sample
+                # combine down sample layer skip connection
+            self.ups.append(ResnetBlocWithAttn(
+                    n_channel_in + feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel,
+                    norm_groups=norm_groups,
+                    dropout=dropout, with_attn=use_attn))
+
+            # up sample
             self.ups.append(Upsample(n_channel_out))
 
             if ind == 0:
@@ -311,9 +313,9 @@ class UNetModified2(nn.Module):
         for layer in self.downs:
             if isinstance(layer, ResnetBlocWithAttn):
                 input = layer(input, t)
-                feats.append(input)
             else:
                 input = layer(input)
+            feats.append(input)
 
         for layer in self.mid:
             if isinstance(layer, ResnetBlocWithAttn):

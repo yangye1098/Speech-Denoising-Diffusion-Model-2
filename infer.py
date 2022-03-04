@@ -10,7 +10,7 @@ import model.model as module_arch
 
 import model.diffusion as module_diffusion
 import model.network as module_network
-from .evaluate_results import evaluate
+from evaluate_results import evaluate
 
 from parse_config import ConfigParser
 
