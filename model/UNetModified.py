@@ -290,6 +290,7 @@ class UNetModified(nn.Module):
         y_t = self.segment(y_t)
 
         input = torch.cat([x, y_t], dim=1)
+
         if self.noise_level_mlp is not None:
             t = self.noise_level_mlp(noise_level)
         else:

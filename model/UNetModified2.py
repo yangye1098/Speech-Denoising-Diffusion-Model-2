@@ -65,7 +65,6 @@ class FeatureWiseAffine(nn.Module):
         self.use_affine_level = use_affine_level
 
         self.noise_func = nn.Sequential(
-            PositionalEncoding(in_channels),
             nn.Linear(in_channels, out_channels*(1+self.use_affine_level))
         )
 
@@ -153,8 +152,19 @@ class UNetModified2(nn.Module):
     ):
         super().__init__()
 
+
         self.segment = SignalToFrames(num_samples, segment_len, segment_stride)
         # first conv raise # channels to inner_channel
+
+
+        noise_level_channel = inner_channel
+        self.noise_level_mlp = nn.Sequential(
+            PositionalEncoding(noise_level_channel),
+            nn.Linear(noise_level_channel, noise_level_channel * 4),
+            Swish(),
+            nn.Linear(noise_level_channel * 4, noise_level_channel)
+        )
+
 
         self.downs = nn.ModuleList([nn.Conv2d(in_channel, inner_channel,
                            kernel_size=3, padding=1)])
@@ -171,7 +181,7 @@ class UNetModified2(nn.Module):
 
             for _ in range(0, res_blocks):
                 self.downs.append(ResnetBlock(
-                    n_channel_in, n_channel_out, noise_level_emb_dim=n_channel_in, norm_groups=norm_groups, dropout=dropout))
+                    n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups, dropout=dropout))
                 feat_channels.append(n_channel_out)
                 n_channel_in = n_channel_out
 
@@ -181,7 +191,7 @@ class UNetModified2(nn.Module):
 
         n_channel_out = n_channel_in
         self.mid = nn.ModuleList([
-                ResnetBlock(n_channel_in, n_channel_out, noise_level_emb_dim=n_channel_in, norm_groups=norm_groups,
+                ResnetBlock(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                                    dropout=dropout)
             ])
         self.ups = nn.ModuleList([])
@@ -194,7 +204,7 @@ class UNetModified2(nn.Module):
 
                 # combine down sample layer skip connection
             self.ups.append(ResnetBlock(
-                    n_channel_in + feat_channels.pop(), n_channel_out, noise_level_emb_dim=n_channel_in,
+                    n_channel_in + feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel,
                     norm_groups=norm_groups,
                     dropout=dropout))
 
@@ -209,7 +219,7 @@ class UNetModified2(nn.Module):
             # combine resnet block skip connection
             for _ in range(0, res_blocks):
                 self.ups.append(ResnetBlock(
-                    n_channel_in+feat_channels.pop(), n_channel_out, noise_level_emb_dim=n_channel_in, norm_groups=norm_groups,
+                    n_channel_in+feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel , norm_groups=norm_groups,
                     dropout=dropout))
                 n_channel_in = n_channel_out
 
@@ -228,9 +238,8 @@ class UNetModified2(nn.Module):
         y_t = self.segment(y_t)
 
         input = torch.cat([x, y_t], dim=1)
-        t = noise_level
 
-
+        t = self.noise_level_mlp(noise_level)
 
         feats = []
         for layer in self.downs:

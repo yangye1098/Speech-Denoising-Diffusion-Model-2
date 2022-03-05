@@ -5,7 +5,6 @@ from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
 from torchmetrics.audio.si_snr import ScaleInvariantSignalNoiseRatio
 from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 from parse_config import ConfigParser
@@ -44,6 +43,7 @@ def evaluate(samples_path, datatype, sample_rate, metrics, logger):
 def loadResults(samples_path, datatype, sample_rate, metrics):
     # load and show results
 
+    import matplotlib.pyplot as plt
     output_dataset = OutputDataset(samples_path, datatype, sample_rate)
 
     for j, m in enumerate(metrics):
