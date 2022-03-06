@@ -136,6 +136,60 @@ class ResnetBlock(nn.Module):
         return h + self.res_conv(x)
 
 
+
+class SelfAttention(nn.Module):
+    def __init__(self, in_channel, n_head=1, norm_groups=32):
+        super().__init__()
+
+        self.n_head = n_head
+
+        self.norm = nn.GroupNorm(norm_groups, in_channel)
+        self.qkv = nn.Conv2d(in_channel, in_channel * 3, 1, bias=False)
+        self.out = nn.Conv2d(in_channel, in_channel, 1)
+
+    def forward(self, input):
+        batch, channel, height, width = input.shape
+        n_head = self.n_head
+        head_dim = channel // n_head
+
+        norm = self.norm(input)
+        qkv = self.qkv(norm).view(batch, n_head, head_dim * 3, height, width)
+        query, key, value = qkv.chunk(3, dim=2)  # bhdyx
+
+        attn = torch.einsum(
+            "bnchw, bncyx -> bnhwyx", query, key
+        ).contiguous() / math.sqrt(channel)
+        attn = attn.view(batch, n_head, height, width, -1)
+        attn = torch.softmax(attn, -1)
+        attn = attn.view(batch, n_head, height, width, height, width)
+
+        out = torch.einsum("bnhwyx, bncyx -> bnchw", attn, value).contiguous()
+        out = self.out(out.view(batch, channel, height, width))
+
+        return out + input
+
+
+class ResnetBlocWithAttn(nn.Module):
+    def __init__(self, dim, dim_out, noise_level_emb_dim=None, norm_groups=32, dropout=0, with_attn=False):
+        super().__init__()
+        self.with_attn = with_attn
+        self.res_block = ResnetBlock(
+            dim, dim_out, noise_level_emb_dim, norm_groups=norm_groups, dropout=dropout)
+        if with_attn:
+            self.attn = SelfAttention(dim_out, norm_groups=norm_groups)
+
+    def forward(self, x, time_emb):
+        x = self.res_block(x, time_emb)
+        if(self.with_attn):
+            x = self.attn(x)
+        return x
+
+
+
+
+
+
+
 class UNetModified2(nn.Module):
     def __init__(
         self,
@@ -191,8 +245,8 @@ class UNetModified2(nn.Module):
 
         n_channel_out = n_channel_in
         self.mid = nn.ModuleList([
-                ResnetBlock(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
-                                   dropout=dropout)
+                ResnetBlocWithAttn(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
+                                   dropout=dropout, with_attn=True)
             ])
         self.ups = nn.ModuleList([])
 
@@ -250,10 +304,8 @@ class UNetModified2(nn.Module):
             feats.append(input)
 
         for layer in self.mid:
-            if isinstance(layer, ResnetBlock):
-                input = layer(input, t)
-            else:
-                input = layer(input)
+            input = layer(input, t)
+
         for layer in self.ups:
             if isinstance(layer, ResnetBlock):
                 input = layer(torch.cat((input, feats.pop()), dim=1), t)
