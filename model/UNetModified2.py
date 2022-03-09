@@ -194,9 +194,6 @@ class UNetModified2(nn.Module):
         self.mid = nn.ModuleList([
                 ResnetBlock(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                                    dropout=dropout),
-
-                ResnetBlock(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
-                        dropout=dropout),
         ])
         self.ups = nn.ModuleList([])
 

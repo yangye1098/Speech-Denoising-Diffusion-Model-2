@@ -198,26 +198,21 @@ class UNetModified2(nn.Module):
         inner_channel=32,
         norm_groups=32,
         channel_mults=(1, 2, 3, 4, 5),
-        attn_layer=(4),
+        attn_layer=(4, 5),
         res_blocks=3,
         dropout=0,
         segment_len=128,
         segment_stride=64,
-        with_noise_level_emb=True,
     ):
         super().__init__()
 
-        if with_noise_level_emb:
-            noise_level_channel = inner_channel
-            self.noise_level_mlp = nn.Sequential(
-                PositionalEncoding(inner_channel),
-                nn.Linear(inner_channel, inner_channel * 4),
+        noise_level_channel = inner_channel
+        self.noise_level_mlp = nn.Sequential(
+                PositionalEncoding(noise_level_channel),
+                nn.Linear(noise_level_channel, noise_level_channel * 4),
                 Swish(),
-                nn.Linear(inner_channel * 4, inner_channel)
+                nn.Linear(noise_level_channel * 4, noise_level_channel)
             )
-        else:
-            noise_level_channel = None
-            self.noise_level_mlp = None
 
         self.segment = SignalToFrames(num_samples, segment_len, segment_stride)
         # first conv raise # channels to inner_channel
@@ -230,11 +225,11 @@ class UNetModified2(nn.Module):
 
         num_mults = len(channel_mults)
 
-        for ind in range(num_mults-1):
+        n_channel_in = inner_channel
+        for ind in range(num_mults):
             use_attn = (ind in attn_layer)
 
-            n_channel_in = inner_channel * channel_mults[ind]
-            n_channel_out = inner_channel * channel_mults[ind+1]
+            n_channel_out = inner_channel * channel_mults[ind]
 
             for _ in range(0, res_blocks):
                 self.downs.append(ResnetBlocWithAttn(
@@ -248,6 +243,9 @@ class UNetModified2(nn.Module):
 
         n_channel_out = n_channel_in
         self.mid = nn.ModuleList([
+
+                ResnetBlocWithAttn(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
+                               dropout=dropout, with_attn=True),
                 ResnetBlocWithAttn(n_channel_in, n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                                    dropout=dropout, with_attn=False)
             ])
@@ -259,15 +257,14 @@ class UNetModified2(nn.Module):
 
             n_channel_in = inner_channel * channel_mults[ind]
             n_channel_out = n_channel_in
-            if ind >= 1:
-                # combine down sample layer skip connection
-                self.ups.append(ResnetBlocWithAttn(
+            # combine down sample layer skip connection
+            self.ups.append(ResnetBlocWithAttn(
                     n_channel_in + feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel,
                     norm_groups=norm_groups,
                     dropout=dropout, with_attn=use_attn))
 
                 # up sample
-                self.ups.append(Upsample(n_channel_out))
+            self.ups.append(Upsample(n_channel_out))
 
             if ind == 0:
                 n_channel_out = inner_channel
@@ -280,9 +277,6 @@ class UNetModified2(nn.Module):
                     n_channel_in+feat_channels.pop(), n_channel_out, noise_level_emb_dim=noise_level_channel, norm_groups=norm_groups,
                     dropout=dropout, with_attn=use_attn))
                 n_channel_in = n_channel_out
-
-
-
 
 
         n_channel_in = n_channel_out
@@ -302,10 +296,7 @@ class UNetModified2(nn.Module):
         y_t = self.segment(y_t)
 
         input = torch.cat([x, y_t], dim=1)
-        if self.noise_level_mlp is not None:
-            t = self.noise_level_mlp(noise_level)
-        else:
-            t = None
+        t = self.noise_level_mlp(noise_level)
 
 
 

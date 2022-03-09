@@ -74,3 +74,10 @@ def loadResults(samples_path, datatype, sample_rate, metrics):
         plt.show(block=False)
 
     plt.show()
+
+if __name__ == '__main__':
+    samples_path = Path('./results/SDDM2_UNet/0302_135202/samples')
+    datatype = '.wav'
+    sample_rate = 16000
+    metrics = {'pesq_wb', 'stoi', 'sisnr'}
+    loadResults(samples_path, datatype, sample_rate, metrics)
