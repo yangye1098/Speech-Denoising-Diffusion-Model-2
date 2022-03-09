@@ -189,7 +189,7 @@ class ResnetBlocWithAttn(nn.Module):
 
 
 
-class UNetModified2(nn.Module):
+class UNetModified3(nn.Module):
     def __init__(
         self,
         num_samples,
