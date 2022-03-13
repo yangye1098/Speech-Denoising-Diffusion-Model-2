@@ -123,7 +123,7 @@ class Trainer(BaseTrainer):
                 for i in range(target.shape[0]):
                     torchaudio.save(self.output_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(output[i,:,:]), 0).cpu(), self.config['sample_rate'])
                     torchaudio.save(self.target_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(target[i,:,:]), 0).cpu(), self.config['sample_rate'])
-                    torchaudio.save(self.condition_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(condition[i,:,:]), 0).cpu(), self.config['sample_rate'])
+                    #torchaudio.save(self.condition_path / f'{batch_idx}_{i}.wav', torch.unsqueeze(torch.squeeze(condition[i,:,:]), 0).cpu(), self.config['sample_rate'])
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
