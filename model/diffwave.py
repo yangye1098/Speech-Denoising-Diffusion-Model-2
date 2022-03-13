@@ -39,6 +39,7 @@ class DiffusionEmbedding(nn.Module):
         return x
 
     def _build_embedding(self, diffusion_step):
+        self.embedding_vector.to(diffusion_step.device)
         encoding = diffusion_step * self.embedding_vector
         encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1) # [B, self.dim]
         return encoding
