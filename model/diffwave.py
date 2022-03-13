@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from math import sqrt
+from math import sqrt, log
 
 Linear = nn.Linear
 ConvTranspose2d = nn.ConvTranspose2d
@@ -20,37 +20,28 @@ def silu(x):
 
 
 class DiffusionEmbedding(nn.Module):
-    def __init__(self, max_steps):
+    def __init__(self, dim = 128):
         super().__init__()
-        self.register_buffer('embedding', self._build_embedding(max_steps), persistent=False)
+        self.dim = dim
+        step = torch.arange(self.dim//2)/(self.dim//2)
+        self.embedding_vector = torch.exp(-log(1e4) * step.unsqueeze(0))
+
         self.projection1 = Linear(128, 512)
         self.projection2 = Linear(512, 512)
 
     def forward(self, diffusion_step):
-        if diffusion_step.dtype in [torch.int32, torch.int64]:
-            x = self.embedding[diffusion_step]
-        else:
-            x = self._lerp_embedding(diffusion_step)
+
+        x = self._build_embedding(diffusion_step)
         x = self.projection1(x)
         x = silu(x)
         x = self.projection2(x)
         x = silu(x)
         return x
 
-    def _lerp_embedding(self, t):
-        t = torch.squeeze(t)
-        low_idx = torch.floor(t).long()
-        high_idx = torch.ceil(t).long()
-        low = self.embedding[low_idx, :]
-        high = self.embedding[high_idx, :]
-        return low + (high - low) * torch.unsqueeze((t - low_idx), -1)
-
-    def _build_embedding(self, max_steps):
-        steps = torch.arange(max_steps+1).unsqueeze(1)  # [T,1]
-        dims = torch.arange(64).unsqueeze(0)  # [1,64]
-        table = steps * 10.0 ** (dims * 4.0 / 63.0)  # [T,64]
-        table = torch.cat([torch.sin(table), torch.cos(table)], dim=1)
-        return table
+    def _build_embedding(self, diffusion_step):
+        encoding = diffusion_step * self.embedding_vector
+        encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1) # [B, self.dim]
+        return encoding
 
 
 class SpectrogramUpsampler(nn.Module):
@@ -127,7 +118,7 @@ class DiffWave(nn.Module):
                  ):
         super().__init__()
         self.input_projection = Conv1d(1, residual_channels, 1)
-        self.diffusion_embedding = DiffusionEmbedding(num_timesteps)
+        self.diffusion_embedding = DiffusionEmbedding()
         self.spectrogram_upsampler = SpectrogramUpsampler(n_mels)
         self.residual_layers = nn.ModuleList([
             ResidualBlock(n_mels, residual_channels, 2 ** (i % dilation_cycle_length))
@@ -142,7 +133,9 @@ class DiffWave(nn.Module):
         """
             spectrogram: [B, 1, n_freq, n_time]
             audio: [B, 1, T]
+            diffusion_step [B, 1, 1]
         """
+        diffusion_step = diffusion_step.squeeze(-1)
         x = self.input_projection(audio)
         x = F.relu(x)
         diffusion_step = self.diffusion_embedding(diffusion_step)
