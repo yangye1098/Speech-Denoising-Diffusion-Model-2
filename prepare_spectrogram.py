@@ -7,7 +7,8 @@ from parse_config import ConfigParser
 from glob import glob
 from tqdm import tqdm
 import argparse
-import librosa
+
+#import librosa
 
 def main(path, config):
     window_length = config['spectrogram']['window_length']
