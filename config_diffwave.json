@@ -1,0 +1,85 @@
+{
+    "name": "SDDM_DiffWave",
+    "n_gpu": 0,
+    "sample_rate": 16000,
+    "num_samples": -1,
+    "spectrogram": {
+        "window_length": 1024,
+        "hop_samples": 256,
+        "stft_bins": 513
+    },
+    "mel_spectrogram": {
+        "window_length": 1024,
+        "hop_samples": 256,
+        "n_mels": 80
+    },
+    "arch": {
+        "type": "SDDM_spectrogram",
+        "args": {
+        }
+    },
+    "diffusion": {
+        "type": "GaussianDiffusion",
+        "args": {
+            "schedule": "linear",
+            "n_timestep": 200,
+            "linear_start": 1e-4,
+            "linear_end": 0.02
+        }
+    },
+    "network": {
+        "type": "DiffWave",
+        "args": {
+            "residual_channels": 64,
+            "residual_layers": 30,
+            "dilation_cycle_length": 10
+        }
+    },
+
+    "tr_dataset": {
+        "type": "NumpyDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/train_28spk",
+            "datatype": ".spec.npy"
+        }
+    },
+    "val_dataset": {
+        "type": "NumpyDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/test",
+            "datatype": ".spec.npy"
+        }
+    },
+    "data_loader": {
+        "type": "WaveGradDataLoader",
+        "args":{
+            "batch_size": 4,
+            "crop_mel_frames": 62,
+            "num_workers": 2
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.0002
+        }
+    },
+    "loss": "l1_loss",
+    "metrics": [
+        "sisnr"
+    ],
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        "n_valid_data_batch": 1,
+        "log_step": 1,
+
+        "monitor": "min val_loss",
+        "early_stop": -1,
+
+        "tensorboard": true
+    }
+}

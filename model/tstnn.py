@@ -277,8 +277,9 @@ class TSTNN(nn.Module):
 
         out = self.inp_prelu(self.inp_norm(self.inp_conv(input)))  # [b, n_channels, num_frames, F]
 
-
         out = self.enc_dense1(out)   # [b, 64, num_frames, frame_size]
+        y = self.enc_conv1(out)
+
         x1 = self.enc_prelu1(self.enc_norm1(self.enc_conv1(self.pad1(out))))  # [b, n_channels, num_frames, F/2]
 
         out = self.dual_transformer(x1)  # [b, 64, num_frames, F/2]

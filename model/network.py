@@ -6,3 +6,4 @@ from .UNetModified import UNetModified
 from .UNetModified2 import UNetModified2
 from .UNetModified3 import UNetModified3
 from .tstnn import TSTNN
+from .diffwave import  DiffWave

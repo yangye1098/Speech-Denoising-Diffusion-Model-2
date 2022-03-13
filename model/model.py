@@ -5,23 +5,23 @@ from .diffusion import GaussianDiffusion
 from tqdm import tqdm
 
 class SDDM(BaseModel):
-    def __init__(self, diffusion:GaussianDiffusion, denoise_network:nn.Module):
+    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module):
         super().__init__()
         self.diffusion = diffusion
-        self.denoise_network = denoise_network
+        self.noise_estimate_model = noise_estimate_model
         self.num_timesteps = self.diffusion.num_timesteps
 
     # train step
-    def forward(self, clean, x):
+    def forward(self, target, condition):
         """
-        clean is the clean sourse
-        x is the noisy conditional input
+        target is the target sourse
+        condition is the noisy conditional input
         """
 
         # generate noise
-        noise = torch.randn_like(clean, device=clean.device)
-        y_t, noise_level = self.diffusion.p_stochastic(clean, noise)
-        predicted = self.denoise_network(x, y_t, noise_level)
+        noise = torch.randn_like(target, device=target.device)
+        y_t, noise_level = self.diffusion.q_stochastic(target, noise)
+        predicted = self.noise_estimate_model(condition, y_t, noise_level)
         return predicted, noise
 
     @torch.no_grad()
@@ -47,8 +47,8 @@ class SDDM(BaseModel):
             samples = [x]
             for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(tuple(noise_level_sample_shape), device=x.device)
-                predicted = self.denoise_network(x, y_t, noise_level)
-                y_t = self.diffusion.q_transition(y_t, t, predicted)
+                predicted = self.noise_estimate_model(x, y_t, noise_level)
+                y_t = self.diffusion.p_transition(y_t, t, predicted)
                 if t % sample_inter == 0:
                     samples.append(y_t)
 
@@ -57,16 +57,16 @@ class SDDM(BaseModel):
         else:
             for t in reversed(range(0, self.num_timesteps)):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(tuple(noise_level_sample_shape), device=x.device)
-                predicted = self.denoise_network(x, y_t, noise_level)
-                y_t = self.diffusion.q_transition(y_t, t, predicted)
+                predicted = self.noise_estimate_model(x, y_t, noise_level)
+                y_t = self.diffusion.p_transition(y_t, t, predicted)
 
             return y_t
 
 
 class SDDM_spectrogram(SDDM):
 
-    def __init__(self, diffusion:GaussianDiffusion, denoise_network:nn.Module, hop_samples:int):
-        super().__init__(diffusion, denoise_network)
+    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, hop_samples:int):
+        super().__init__(diffusion, noise_estimate_model)
         self.hop_samples = hop_samples
 
     @torch.no_grad()
@@ -86,7 +86,7 @@ class SDDM_spectrogram(SDDM):
             samples = [x]
             for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(batch_size, device=x.device)
-                predicted = self.denoise_network(x, y_t, noise_level)
+                predicted = self.noise_estimate_model(x, y_t, noise_level)
                 y_t = self.diffusion.q_transition(y_t, t, predicted)
                 if t % sample_inter == 0:
                     samples.append(y_t)
@@ -96,7 +96,7 @@ class SDDM_spectrogram(SDDM):
         else:
             for t in reversed(range(0, self.num_timesteps)):
                 noise_level = self.diffusion.get_noise_level(t)* torch.ones(batch_size, device=x.device)
-                predicted = self.denoise_network(x, y_t, noise_level)
+                predicted = self.noise_estimate_model(x, y_t, noise_level)
                 y_t = self.diffusion.q_transition(y_t, t, predicted)
 
             return y_t
