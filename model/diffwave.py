@@ -46,7 +46,7 @@ class DiffusionEmbedding(nn.Module):
         return low + (high - low) * torch.unsqueeze((t - low_idx), -1)
 
     def _build_embedding(self, max_steps):
-        steps = torch.arange(max_steps).unsqueeze(1)  # [T,1]
+        steps = torch.arange(max_steps+1).unsqueeze(1)  # [T,1]
         dims = torch.arange(64).unsqueeze(0)  # [1,64]
         table = steps * 10.0 ** (dims * 4.0 / 63.0)  # [T,64]
         table = torch.cat([torch.sin(table), torch.cos(table)], dim=1)
