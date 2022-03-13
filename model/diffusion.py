@@ -142,9 +142,10 @@ class GaussianDiffusion(nn.Module):
         alpha_bar_sample = l_a + random_step * (l_b - l_a)
         alpha_bar_sample = alpha_bar_sample.view(tuple(alpha_bar_sample_shape))
 
+
         y_t = alpha_bar_sample * y_0 + torch.sqrt((1. - torch.square(alpha_bar_sample))) * noise
 
-        return y_t, alpha_bar_sample, t+random_step
+        return y_t, alpha_bar_sample, (t+random_step).view(tuple(alpha_bar_sample_shape))
 
     def get_noise_level(self, t):
         """
