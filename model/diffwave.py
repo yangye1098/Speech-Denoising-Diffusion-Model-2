@@ -145,7 +145,6 @@ class DiffWave(nn.Module):
         """
         x = self.input_projection(audio)
         x = F.relu(x)
-
         diffusion_step = self.diffusion_embedding(diffusion_step)
         spectrogram = self.spectrogram_upsampler(spectrogram)
 
