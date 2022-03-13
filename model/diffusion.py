@@ -138,12 +138,13 @@ class GaussianDiffusion(nn.Module):
         t = torch.randint(1, self.num_timesteps + 1, [b], device=y_0.device)
         # sample noise level using uniform distribution
         l_a, l_b = self.sqrt_alpha_bar[t - 1], self.sqrt_alpha_bar[t]
-        alpha_bar_sample = l_a + torch.rand(b, device=y_0.device) * (l_b - l_a)
+        random_step =  torch.rand(b, device=y_0.device)
+        alpha_bar_sample = l_a + random_step * (l_b - l_a)
         alpha_bar_sample = alpha_bar_sample.view(tuple(alpha_bar_sample_shape))
 
         y_t = alpha_bar_sample * y_0 + torch.sqrt((1. - torch.square(alpha_bar_sample))) * noise
 
-        return y_t, alpha_bar_sample
+        return y_t, alpha_bar_sample, t+random_step
 
     def get_noise_level(self, t):
         """

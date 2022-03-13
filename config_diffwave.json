@@ -16,6 +16,7 @@
     "arch": {
         "type": "SDDM_spectrogram",
         "args": {
+            "noise_condition": "time_step"
         }
     },
     "diffusion": {
@@ -73,6 +74,7 @@
 
         "save_dir": "saved/",
         "save_period": 1,
+        "valid_period": 1,
         "verbosity": 2,
         "n_valid_data_batch": 1,
         "log_step": 1,
