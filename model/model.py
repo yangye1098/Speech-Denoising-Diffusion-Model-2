@@ -90,7 +90,7 @@ class SDDM_spectrogram(SDDM):
     def infer(self, condition, continuous=False):
         # condition is spectrogram
         # initial input
-        y_t = torch.randn(condition.shape[0], self.hop_samples * condition.shape[-1], device=condition.device)
+        y_t = torch.randn(condition.shape[0], 1, self.hop_samples * condition.shape[-1], device=condition.device)
         # TODO: predict noise level to reduce computation cost
 
         num_timesteps = self.diffusion.num_timesteps
