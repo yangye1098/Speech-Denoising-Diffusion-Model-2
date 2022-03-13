@@ -113,7 +113,7 @@ class SDDM_spectrogram(SDDM):
                 elif self.noise_condition == 'time_step':
                     time_steps = t * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, time_steps)
-                y_t = self.diffusion.q_transition(y_t, t, predicted)
+                y_t = self.diffusion.p_transition(y_t, t, predicted)
                 if t % sample_inter == 0:
                     samples.append(y_t)
 
@@ -129,6 +129,6 @@ class SDDM_spectrogram(SDDM):
                     time_steps = t * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, time_steps)
 
-                y_t = self.diffusion.q_transition(y_t, t, predicted)
+                y_t = self.diffusion.p_transition(y_t, t, predicted)
 
             return y_t
