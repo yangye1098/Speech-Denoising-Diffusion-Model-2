@@ -20,17 +20,17 @@ def silu(x):
 
 
 class DiffusionEmbedding(nn.Module):
-    def __init__(self, dim = 128):
+    def __init__(self, dim=128):
         super().__init__()
         self.dim = dim
         step = torch.arange(self.dim//2)/(self.dim//2)
-        self.embedding_vector = torch.exp(-log(1e4) * step.unsqueeze(0))
+        #self.embedding_vector = torch.exp(-log(1e4) * step.unsqueeze(0))
+        self.embedding_vector = 10.0 ** (step * 4.0/63)
 
         self.projection1 = Linear(128, 512)
         self.projection2 = Linear(512, 512)
 
     def forward(self, diffusion_step):
-
         x = self._build_embedding(diffusion_step)
         x = self.projection1(x)
         x = silu(x)
