@@ -99,7 +99,7 @@ class GaussianDiffusion(nn.Module):
         sr3 p_transition
         noise variance is different from Ho et al 2020
         """
-        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alpha[t])**0.5
+        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
         if t > 1:
             noise = torch.randn_like(y_t)
             y_t_1 += torch.sqrt(self.betas[t]) * noise
@@ -114,7 +114,7 @@ class GaussianDiffusion(nn.Module):
         """
 
         # mean
-        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alpha[t])**0.5
+        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
         # add gaussian noise with std of sigma
         if t > 1:
             noise = torch.randn_like(y_t)
