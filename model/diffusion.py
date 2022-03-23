@@ -153,9 +153,9 @@ class GaussianDiffusion(nn.Module):
 
     def get_noise_level(self, t):
         """
-        noise level is sqrt alphas comprod
+        noise level is sqrt alpha bar
         """
-        return self.sqrt_alphas_cumprod_prev[t]
+        return self.sqrt_alpha_bar[t]
 
 
 if __name__ == '__main__':
