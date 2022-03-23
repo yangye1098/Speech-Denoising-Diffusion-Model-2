@@ -123,7 +123,7 @@ class GaussianDiffusion(nn.Module):
         y_t_1.clamp_(-1., 1.)
         return y_t_1
 
-    def q_stochastic(self, y_0, noise):
+    def q_stochastic(self, y_0, noise, t_is_integer=False):
         """
         y_0 has shape of [B, 1, T]
         choose a random diffusion step to calculate loss
@@ -136,12 +136,15 @@ class GaussianDiffusion(nn.Module):
         # choose random step for each one in this batch
         # change to torch
         t = torch.randint(1, self.num_timesteps + 1, [b], device=y_0.device)
-        # sample noise level using uniform distribution
-        # l_a, l_b = self.sqrt_alpha_bar[t - 1], self.sqrt_alpha_bar[t]
-        # random_step =  torch.rand(b, device=y_0.device)
-        # alpha_bar_sample = l_a + random_step * (l_b - l_a)
-        sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
-        random_step = 0
+        if t_is_integer:
+            sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
+            random_step = 0
+        else:
+            # sample noise level using uniform distribution
+            l_a, l_b = self.sqrt_alpha_bar[t - 1], self.sqrt_alpha_bar[t]
+            random_step =  torch.rand(b, device=y_0.device)
+            sqrt_alpha_bar_sample = l_a + random_step * (l_b - l_a)
+
         sqrt_alpha_bar_sample = sqrt_alpha_bar_sample.view(tuple(alpha_bar_sample_shape))
 
         y_t = sqrt_alpha_bar_sample * y_0 + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise

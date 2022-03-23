@@ -5,13 +5,13 @@ from .diffusion import GaussianDiffusion
 from tqdm import tqdm
 
 class SDDM(BaseModel):
-    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, noise_condition='alpha_bar'):
+    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, noise_condition='sqrt_alpha_bar'):
         super().__init__()
         self.diffusion = diffusion
         self.noise_estimate_model = noise_estimate_model
         self.num_timesteps = self.diffusion.num_timesteps
         self.noise_condition = noise_condition
-        if noise_condition != 'alpha_bar' and noise_condition != 'time_step':
+        if noise_condition != 'sqrt_alpha_bar' and noise_condition != 'time_step':
             raise NotImplementedError
 
     # train step
@@ -24,7 +24,7 @@ class SDDM(BaseModel):
         # generate noise
         noise = torch.randn_like(target, device=target.device)
         y_t, noise_level, t = self.diffusion.q_stochastic(target, noise)
-        if self.noise_condition == 'alpha_bar':
+        if self.noise_condition == 'sqrt_alpha_bar':
             predicted = self.noise_estimate_model(condition, y_t, noise_level)
         elif self.noise_condition == 'time_step':
             predicted = self.noise_estimate_model(condition, y_t, t)
@@ -51,7 +51,7 @@ class SDDM(BaseModel):
             assert batch_size==1, 'Batch size must be 1 to do continuous sampling'
             samples = [condition]
             for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-                if self.noise_condition == 'alpha_bar':
+                if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, noise_level)
@@ -67,7 +67,7 @@ class SDDM(BaseModel):
 
         else:
             for t in reversed(range(0, self.num_timesteps)):
-                if self.noise_condition == 'alpha_bar':
+                if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, noise_level)
@@ -82,7 +82,7 @@ class SDDM(BaseModel):
 
 class SDDM_spectrogram(SDDM):
 
-    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, hop_samples:int, noise_condition='alpha_bar'):
+    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, hop_samples:int, noise_condition='sqrt_alpha_bar'):
         super().__init__(diffusion, noise_estimate_model, noise_condition)
         self.hop_samples = hop_samples
 
@@ -106,7 +106,7 @@ class SDDM_spectrogram(SDDM):
             assert batch_size==1, 'Batch size must be 1 to do continuous sampling'
             samples = [condition]
             for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-                if self.noise_condition == 'alpha_bar':
+                if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, noise_level)
@@ -121,7 +121,7 @@ class SDDM_spectrogram(SDDM):
 
         else:
             for t in reversed(range(0, self.num_timesteps)):
-                if self.noise_condition == 'alpha_bar':
+                if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, noise_level)
