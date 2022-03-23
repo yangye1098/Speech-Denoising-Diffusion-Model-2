@@ -50,7 +50,7 @@ class SDDM(BaseModel):
         if continuous:
             assert batch_size==1, 'Batch size must be 1 to do continuous sampling'
             samples = [condition]
-            for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+            for t in tqdm(reversed(range(1, self.num_timesteps+1)), desc='sampling loop time step', total=self.num_timesteps):
                 if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
@@ -66,7 +66,7 @@ class SDDM(BaseModel):
             return samples
 
         else:
-            for t in reversed(range(0, self.num_timesteps)):
+            for t in reversed(range(1, self.num_timesteps+1)):
                 if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
@@ -105,7 +105,7 @@ class SDDM_spectrogram(SDDM):
         if continuous:
             assert batch_size==1, 'Batch size must be 1 to do continuous sampling'
             samples = [condition]
-            for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+            for t in tqdm(reversed(range(1, self.num_timesteps+1)), desc='sampling loop time step', total=self.num_timesteps):
                 if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
@@ -120,7 +120,7 @@ class SDDM_spectrogram(SDDM):
             return samples
 
         else:
-            for t in reversed(range(0, self.num_timesteps)):
+            for t in reversed(range(1, self.num_timesteps+1)):
                 if self.noise_condition == 'sqrt_alpha_bar':
                     noise_level = self.diffusion.get_noise_level(t) * torch.ones(tuple(noise_level_sample_shape),
                                                                                  device=condition.device)
