@@ -1,8 +1,7 @@
 import argparse
 import collections
 import torch
-# import data_loader.data_loaders as module_data
-#import data_loader.numpy_dataset as module_data
+import data_loader.numpy_dataset as module_data
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
@@ -19,12 +18,19 @@ def main(config):
     logger = config.get_logger('train')
 
     # setup data_loader instances
+    datatype = config['datatype']
+    if datatype == '.spec.npy':
+        hop_samples = config['spectrogram']['hop_samples']
+        window_length = config['spectrogram']['window_length']
+        freq_bins = config['spectrogram']['freq_bins']
+    elif datatype == '.mel.npy':
+        hop_samples = config['spectrogram']['hop_samples']
+        window_length = config['spectrogram']['window_length']
+        freq_bins = config['spectrogram']['freq_bins']
 
-    hop_samples = config['spectrogram']['hop_samples']
-    window_length = config['spectrogram']['window_length']
 
-    tr_dataset = config.init_obj('tr_dataset', module_data, sample_rate=config['sample_rate'], T=config['num_samples'])
-    val_dataset = config.init_obj('val_dataset', module_data, sample_rate=config['sample_rate'], T=config['num_samples'])
+    tr_dataset = config.init_obj('tr_dataset', module_data, datatype=datatype, sample_rate=config['sample_rate'], T=config['num_samples'])
+    val_dataset = config.init_obj('val_dataset', module_data, datatype=datatype, sample_rate=config['sample_rate'], T=config['num_samples'])
     tr_data_loader = config.init_obj('data_loader', module_data, tr_dataset, hop_samples=hop_samples)
     val_data_loader = config.init_obj('data_loader', module_data, val_dataset, hop_samples=hop_samples)
 
@@ -36,7 +42,7 @@ def main(config):
 
     # build model architecture, then print to console
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network, num_samples=config['num_samples'], n_mels=config['spectrogram']['stft_bins'], num_timesteps=diffusion.num_timesteps)
+    network = config.init_obj('network', module_network, num_samples=config['num_samples'], freq_bins=freq_bins, num_timesteps=diffusion.num_timesteps)
     network = network.to(device)
 
 

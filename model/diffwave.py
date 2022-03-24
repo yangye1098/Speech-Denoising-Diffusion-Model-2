@@ -46,7 +46,7 @@ class DiffusionEmbedding(nn.Module):
 
 
 class SpectrogramUpsampler(nn.Module):
-    def __init__(self, n_mels):
+    def __init__(self, freq_bins):
         super().__init__()
         self.conv1 = ConvTranspose2d(1, 1, [3, 32], stride=[1, 16], padding=[1, 8])
         self.conv2 = ConvTranspose2d(1, 1, [3, 32], stride=[1, 16], padding=[1, 8])
@@ -62,11 +62,11 @@ class SpectrogramUpsampler(nn.Module):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, n_mels, residual_channels, dilation, fix_in=False, split=True):
+    def __init__(self, freq_bins, residual_channels, dilation, fix_in=False, split=True):
         super().__init__()
         self.dilated_conv = Conv1d(residual_channels, 2 * residual_channels, 3, padding=dilation, dilation=dilation)
         self.diffusion_projection = Linear(512, residual_channels)
-        self.conditioner_projection = Conv1d(n_mels, 2 * residual_channels, 1)
+        self.conditioner_projection = Conv1d(freq_bins, 2 * residual_channels, 1)
         self.split = split
         self.fix_in = fix_in
         if self.split:
@@ -112,7 +112,7 @@ class DiffWave(nn.Module):
     def __init__(self,
                  num_samples,
                  num_timesteps,
-                 n_mels,
+                 freq_bins,
                  residual_channels=64,
                  residual_layers=30,
                  dilation_cycle_length=10,
@@ -120,9 +120,9 @@ class DiffWave(nn.Module):
         super().__init__()
         self.input_projection = Conv1d(1, residual_channels, 1)
         self.diffusion_embedding = DiffusionEmbedding()
-        self.spectrogram_upsampler = SpectrogramUpsampler(n_mels)
+        self.spectrogram_upsampler = SpectrogramUpsampler(freq_bins)
         self.residual_layers = nn.ModuleList([
-            ResidualBlock(n_mels, residual_channels, 2 ** (i % dilation_cycle_length))
+            ResidualBlock(freq_bins, residual_channels, 2 ** (i % dilation_cycle_length))
 
             for i in range(residual_layers)
         ])
