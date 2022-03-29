@@ -91,14 +91,14 @@ class GaussianDiffusion(nn.Module):
 
         self.register_buffer('predicted_noise_coeff', predicted_noise_coeff)
         self.register_buffer('sigma', sigma)
-
         # Supportive Parameters
         supportive_gamma = torch.zeros_like(self.betas)
         supportive_gamma[1] = 0.2
-        supportive_gamma[2:] = sigma[2:]/self.sqrt_alpha_bar[1:-1]
+        supportive_gamma[2:] = sigma[2:]/(self.alphas[1:-1]**0.5)
 
         supportive_sigma_hat = torch.zeros_like(self.betas)
-        supportive_sigma_hat[1:] = torch.sqrt(sigma[1:]**2 - (supportive_gamma[1:]**2) * self.alpha_bar[:-1])
+        #supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:] * self.alpha[:-1])
+
         self.register_buffer('supportive_gamma', supportive_gamma)
         self.register_buffer('supportive_sigma_hat', supportive_sigma_hat)
 
@@ -135,25 +135,23 @@ class GaussianDiffusion(nn.Module):
         return y_t_1
 
     @torch.no_grad()
-    def p_transition_supportive(self, x_t, t, predicted_noise, y):
+    def p_transition_supportive(self, x_t, t, predicted_noise, condition):
         """
         supportive transition from Lu et al 2021
         x_t is the sample at t
         t is the time step
         predicted_noise is the noise predicted by the denoising model
-        y is the conditional input
+        condition is the conditional input
         """
 
         # mean
         mu_t = (x_t - self.predicted_noise_coeff[t] * predicted_noise)/(self.alphas[t])**0.5
         # add gaussian noise with std of sigma
-        x_t_1 = (1-self.supportive_gamma[t]) * mu_t + self.supportive_gamma[t] * self.sqrt_alpha_bar[t-1]*y
+        x_t_1 = (1-self.supportive_gamma[t]) * mu_t + self.supportive_gamma[t] * self.sqrt_alpha_bar[t-1]*condition
         if t > 1:
             noise = torch.randn_like(x_t)
             x_t_1 += self.supportive_sigma_hat[t] * noise
-
-        x_t_1.clamp_(-1., 1.)
-        return x_t_1
+        return x_t_1.clamp_(-1., 1.)
 
     @torch.no_grad()
     def p_transition_conditional(self, y_t, t, predicted):

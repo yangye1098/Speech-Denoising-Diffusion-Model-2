@@ -88,7 +88,7 @@ class SDDM(BaseModel):
                     y_t = self.diffusion.p_transition(y_t, t, predicted)
                 elif self.p_transition == 'supportive':
                     y_t = self.diffusion.p_transition_supportive(y_t, t, predicted, condition)
-
+                    print(y_t)
 
             return y_t
 
