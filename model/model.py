@@ -5,13 +5,18 @@ from .diffusion import GaussianDiffusion
 from tqdm import tqdm
 
 class SDDM(BaseModel):
-    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module, noise_condition='sqrt_alpha_bar'):
+    def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module,
+                 noise_condition='sqrt_alpha_bar', p_transition='original'):
         super().__init__()
         self.diffusion = diffusion
         self.noise_estimate_model = noise_estimate_model
         self.num_timesteps = self.diffusion.num_timesteps
         self.noise_condition = noise_condition
+        self.p_transition = p_transition
         if noise_condition != 'sqrt_alpha_bar' and noise_condition != 'time_step':
+            raise NotImplementedError
+
+        if p_transition != 'original' and p_transition != 'supportive' and p_transition != 'sr3':
             raise NotImplementedError
 
     # train step
@@ -59,7 +64,11 @@ class SDDM(BaseModel):
                     time_steps = t * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, time_steps)
 
-                y_t = self.diffusion.p_transition(y_t, t, predicted)
+                if self.p_transition == 'original':
+                    y_t = self.diffusion.p_transition(y_t, t, predicted)
+                elif self.p_transition == 'supportive':
+                    y_t = self.diffusion.p_transition_supportive(y_t, t, predicted, condition)
+
                 if t % sample_inter == 0:
                     samples.append(y_t)
 
@@ -75,7 +84,11 @@ class SDDM(BaseModel):
                     time_steps = t * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
                     predicted = self.noise_estimate_model(condition, y_t, time_steps)
 
-                y_t = self.diffusion.p_transition(y_t, t, predicted)
+                if self.p_transition == 'original':
+                    y_t = self.diffusion.p_transition(y_t, t, predicted)
+                elif self.p_transition == 'supportive':
+                    y_t = self.diffusion.p_transition_supportive(y_t, t, predicted, condition)
+
 
             return y_t
 
