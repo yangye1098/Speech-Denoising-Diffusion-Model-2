@@ -150,7 +150,7 @@ class GaussianDiffusion(nn.Module):
         x_t_1 = (1-self.supportive_gamma[t]) * mu_t + self.supportive_gamma[t] * self.sqrt_alpha_bar[t-1]*y
         if t > 1:
             noise = torch.randn_like(x_t)
-            x_t_1 += self.supportive_sigma[t] * noise
+            x_t_1 += self.supportive_sigma_hat[t] * noise
 
         x_t_1.clamp_(-1., 1.)
         return x_t_1
