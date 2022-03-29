@@ -249,7 +249,6 @@ class UNetModified2(nn.Module):
             else:
                 input = layer(input)
             feats.append(input)
-        print(input.shape)
         for layer in self.mid:
             input = layer(input, t)
 
