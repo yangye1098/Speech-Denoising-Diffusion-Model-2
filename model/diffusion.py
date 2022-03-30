@@ -4,6 +4,7 @@ from torch import nn
 import numpy as np
 from functools import partial
 
+from matplotlib import pyplot as plt
 
 def _warmup_beta(linear_start, linear_end, n_timestep, warmup_frac):
     betas = linear_end * np.ones(n_timestep, dtype=np.float64)
@@ -98,8 +99,7 @@ class GaussianDiffusion(nn.Module):
         supportive_gamma[2:] = sigma[2:]/(self.alphas[1:-1]**0.5)
 
         supportive_sigma_hat = torch.zeros_like(self.betas)
-        supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:])
-        print(supportive_sigma_hat<0)
+        # supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:])
 
         self.register_buffer('supportive_gamma', supportive_gamma)
         self.register_buffer('supportive_sigma_hat', supportive_sigma_hat)
@@ -107,12 +107,15 @@ class GaussianDiffusion(nn.Module):
     def calculate_coeffs_conditional(self):
         # q process
         m = torch.sqrt((1 - self.alpha_bar) / self.sqrt_alpha_bar)
+
         self.register_buffer('m', m)
         # variance
         delta = (1 - self.alpha_bar) - m ** 2 * self.alpha_bar
         # standard deviation
 
+        time_steps = torch.arange(0, len(self.betas))
         self.register_buffer('sqrt_delta', torch.sqrt(delta))
+
 
         # p process
         # (1 - m_t )/ (1 - m_{t-1})
@@ -133,6 +136,7 @@ class GaussianDiffusion(nn.Module):
         c_epst = torch.zeros_like(self.betas)
         c_epst[1:] = (1 - self.m[:-1]) * delta_t_given_t_1 / delta[1:] \
                      * torch.sqrt(1-self.alpha_bar[1:]) / self.sqrt_alpha_bar[1:]
+
         # estimated variance
         delta_estimated = torch.zeros_like(self.betas)
         delta_estimated[1:] = delta_t_given_t_1 * delta[1:] / delta[:-1]
@@ -197,14 +201,17 @@ class GaussianDiffusion(nn.Module):
         """
         conditional p transition
         """
-        mean = self.c_xt[t] * x_t + self.c_yt[t] * condition - self.c_epst[t] * predicted_noise
+        if t == self.num_timesteps + 1:
+            # T step, ignore x_t input and calculate conditional xt
+            x_t_1 = self.sqrt_alpha_bar[t] * condition + self.sqrt_delta[t] * torch.randn_like(condition)
+        else:
 
-        x_t_1 = mean
-        if t > 1:
-            # add gaussian noise portion
-            noise = torch.randn_like(x_t)
-            x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
-
+            mean = self.c_xt[t] * x_t + self.c_yt[t] * condition - self.c_epst[t] * predicted_noise
+            x_t_1 = mean
+            if t > 1:
+                # add gaussian noise portion
+                noise = torch.randn_like(x_t)
+                x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
 
         return x_t_1.clamp_(-1., 1.)
 
