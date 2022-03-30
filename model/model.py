@@ -6,17 +6,21 @@ from tqdm import tqdm
 
 class SDDM(BaseModel):
     def __init__(self, diffusion:GaussianDiffusion, noise_estimate_model:nn.Module,
-                 noise_condition='sqrt_alpha_bar', p_transition='original'):
+                 noise_condition='sqrt_alpha_bar', p_transition='original', q_transition='original'):
         super().__init__()
         self.diffusion = diffusion
         self.noise_estimate_model = noise_estimate_model
         self.num_timesteps = self.diffusion.num_timesteps
         self.noise_condition = noise_condition
         self.p_transition = p_transition
+        self.q_transition = q_transition
         if noise_condition != 'sqrt_alpha_bar' and noise_condition != 'time_step':
             raise NotImplementedError
 
-        if p_transition != 'original' and p_transition != 'supportive' and p_transition != 'sr3':
+        if p_transition != 'original' and p_transition != 'supportive' and p_transition != 'sr3' and p_transition != 'conditional':
+            raise NotImplementedError
+
+        if q_transition != 'original' and q_transition != 'conditional':
             raise NotImplementedError
 
     # train step
@@ -27,12 +31,17 @@ class SDDM(BaseModel):
         """
 
         # generate noise
-        noise = torch.randn_like(target, device=target.device)
-        y_t, noise_level, t = self.diffusion.q_stochastic(target, noise)
-        if self.noise_condition == 'sqrt_alpha_bar':
+        if self.q_transition == 'original':
+            noise = torch.randn_like(target, device=target.device)
+            y_t, noise_level, t = self.diffusion.q_stochastic(target, noise)
+            if self.noise_condition == 'sqrt_alpha_bar':
+                predicted = self.noise_estimate_model(condition, y_t, noise_level)
+            elif self.noise_condition == 'time_step':
+                predicted = self.noise_estimate_model(condition, y_t, t)
+        elif self.q_transition == 'conditional':
+            noise = torch.randn_like(target, device=target.device)
+            y_t, noise, noise_level = self.diffusion.q_stochastic_conditional(target, condition, noise)
             predicted = self.noise_estimate_model(condition, y_t, noise_level)
-        elif self.noise_condition == 'time_step':
-            predicted = self.noise_estimate_model(condition, y_t, t)
 
         return predicted, noise
 
@@ -68,6 +77,8 @@ class SDDM(BaseModel):
                     y_t = self.diffusion.p_transition(y_t, t, predicted)
                 elif self.p_transition == 'supportive':
                     y_t = self.diffusion.p_transition_supportive(y_t, t, predicted, condition)
+                elif self.p_transition == 'conditional':
+                    y_t = self.diffusion.p_transition_conditional(y_t, t, predicted, condition)
 
                 if t % sample_inter == 0:
                     samples.append(y_t)
@@ -88,6 +99,8 @@ class SDDM(BaseModel):
                     y_t = self.diffusion.p_transition(y_t, t, predicted)
                 elif self.p_transition == 'supportive':
                     y_t = self.diffusion.p_transition_supportive(y_t, t, predicted, condition)
+                elif self.p_transition == 'conditional':
+                    y_t = self.diffusion.p_transition_conditional(y_t, t, predicted, condition)
 
             return y_t
 

@@ -80,6 +80,7 @@ class GaussianDiffusion(nn.Module):
         # standard deviation
 
         self.calculate_p_coeffs()
+        self.calculate_coeffs_conditional()
 
     def calculate_p_coeffs(self):
 
@@ -97,11 +98,49 @@ class GaussianDiffusion(nn.Module):
         supportive_gamma[2:] = sigma[2:]/(self.alphas[1:-1]**0.5)
 
         supportive_sigma_hat = torch.zeros_like(self.betas)
-        #supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:] * self.alpha[:-1])
+        supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:])
+        print(supportive_sigma_hat<0)
 
         self.register_buffer('supportive_gamma', supportive_gamma)
         self.register_buffer('supportive_sigma_hat', supportive_sigma_hat)
 
+    def calculate_coeffs_conditional(self):
+        # q process
+        m = torch.sqrt((1 - self.alpha_bar) / self.sqrt_alpha_bar)
+        self.register_buffer('m', m)
+        # variance
+        delta = (1 - self.alpha_bar) - m ** 2 * self.alpha_bar
+        # standard deviation
+
+        self.register_buffer('sqrt_delta', torch.sqrt(delta))
+
+        # p process
+        # (1 - m_t )/ (1 - m_{t-1})
+        one_minus_m_ratio = (1 - m[1:]) / (1 - m[:-1])
+        # alpha_t * delta_{t-1}
+        alpha_t_delta_t_1 = self.alphas[1:] * delta[:-1]
+        # delta_{t|t-1}
+        delta_t_given_t_1 = delta[1:] - one_minus_m_ratio ** 2 * alpha_t_delta_t_1
+
+        c_xt = torch.zeros_like(self.betas)
+        c_xt[1:] = one_minus_m_ratio * delta[:-1] / delta[1:] * self.sqrt_alpha_bar[1:] \
+                   + (1-self.m[:-1]) * (delta_t_given_t_1 / delta[1:]) * (1 / torch.sqrt(self.alphas[1:]))
+
+        c_yt = torch.zeros_like(self.betas)
+        c_yt[1:] = (self.m[:-1] * delta[1:] - self.m[1:] * one_minus_m_ratio * alpha_t_delta_t_1) \
+                   * self.sqrt_alpha_bar[:-1] / delta[1:]
+
+        c_epst = torch.zeros_like(self.betas)
+        c_epst[1:] = (1 - self.m[:-1]) * delta_t_given_t_1 / delta[1:] \
+                     * torch.sqrt(1-self.alpha_bar[1:]) / self.sqrt_alpha_bar[1:]
+        # estimated variance
+        delta_estimated = torch.zeros_like(self.betas)
+        delta_estimated[1:] = delta_t_given_t_1 * delta[1:] / delta[:-1]
+
+        self.register_buffer('c_xt', c_xt)
+        self.register_buffer('c_yt', c_yt)
+        self.register_buffer('c_epst', c_epst)
+        self.register_buffer('sqrt_delta_estimated', torch.sqrt(delta_estimated))
 
 
     @torch.no_grad()
@@ -154,10 +193,19 @@ class GaussianDiffusion(nn.Module):
         return x_t_1.clamp_(-1., 1.)
 
     @torch.no_grad()
-    def p_transition_conditional(self, y_t, t, predicted):
+    def p_transition_conditional(self, x_t, t, predicted_noise, condition):
         """
         conditional p transition
         """
+        mean = self.c_xt[t] * x_t + self.c_yt[t] * condition - self.c_epst[t] * predicted_noise
+
+        x_t_1 = mean
+        if t > 1:
+            # add gaussian noise portion
+            noise = torch.randn_like(x_t)
+            x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
+
+        x_t_1.clamp_(-1., 1.)
 
         return
 
@@ -189,6 +237,35 @@ class GaussianDiffusion(nn.Module):
         y_t = sqrt_alpha_bar_sample * y_0 + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
 
         return y_t, sqrt_alpha_bar_sample, (t+random_step).view(tuple(alpha_bar_sample_shape))
+
+    def q_stochastic_conditional(self, x_0, y, noise):
+        """
+            x_0 is the training target
+            y is the conditional input
+        """
+
+        # 0 dim is the batch size
+        b = x_0.shape[0]
+        noise_level_sample_shape = torch.ones(x_0.ndim, dtype=torch.int)
+        noise_level_sample_shape[0] = b
+
+        # choose random step [1, num_timesteps] for each one in this batch
+        t = torch.randint(1, self.num_timesteps + 1, tuple(noise_level_sample_shape), device=x_0.device)
+
+        sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
+
+        # sqrt(delta_t) * eps
+        gaussian_noise = self.sqrt_delta[t] * noise
+        # noise from sample
+        noise_from_condition = self.m[t] * self.sqrt_alpha_bar[t] * (y - x_0)
+
+        x_t = self.sqrt_alpha_bar[t] * x_0 + noise_from_condition + gaussian_noise
+
+        combined_noise = 1. / (torch.sqrt(1. - self.alpha_bar[t])) * (noise_from_condition + gaussian_noise)
+
+        # use sqrt_alpha_bar as condition
+        return x_t, combined_noise, sqrt_alpha_bar_sample
+
 
     def get_noise_level(self, t):
         """
