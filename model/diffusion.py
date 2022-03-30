@@ -2,7 +2,6 @@ import math
 import torch
 from torch import nn
 import numpy as np
-from functools import partial
 
 
 def _warmup_beta(linear_start, linear_end, n_timestep, warmup_frac):
