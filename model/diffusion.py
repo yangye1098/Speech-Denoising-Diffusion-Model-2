@@ -205,9 +205,8 @@ class GaussianDiffusion(nn.Module):
             noise = torch.randn_like(x_t)
             x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
 
-        x_t_1.clamp_(-1., 1.)
 
-        return
+        return x_t_1.clamp_(-1., 1.)
 
 
     def q_stochastic(self, y_0, noise, t_is_integer=False):
