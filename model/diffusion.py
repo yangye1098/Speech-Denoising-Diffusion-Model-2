@@ -4,7 +4,6 @@ from torch import nn
 import numpy as np
 from functools import partial
 
-from matplotlib import pyplot as plt
 
 def _warmup_beta(linear_start, linear_end, n_timestep, warmup_frac):
     betas = linear_end * np.ones(n_timestep, dtype=np.float64)
