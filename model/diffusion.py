@@ -122,10 +122,11 @@ class GaussianDiffusion(nn.Module):
         alpha_t_delta_t_1 = self.alphas[1:] * delta[:-1]
         # delta_{t|t-1}
         delta_t_given_t_1 = delta[1:] - one_minus_m_ratio ** 2 * alpha_t_delta_t_1
+        sqrt_alphas = torch.sqrt(self.alphas[1:])
 
         c_xt = torch.zeros_like(self.betas)
-        c_xt[1:] = one_minus_m_ratio * delta[:-1] / delta[1:] * self.sqrt_alpha_bar[1:] \
-                   + (1-self.m[:-1]) * (delta_t_given_t_1 / delta[1:]) * (1 / torch.sqrt(self.alphas[1:]))
+        c_xt[1:] = one_minus_m_ratio * delta[:-1] / delta[1:] * sqrt_alphas \
+                   + (1-self.m[:-1]) * (delta_t_given_t_1 / delta[1:]) * (1 / sqrt_alphas)
 
         c_yt = torch.zeros_like(self.betas)
         c_yt[1:] = (self.m[:-1] * delta[1:] - self.m[1:] * one_minus_m_ratio * alpha_t_delta_t_1) \
@@ -133,7 +134,7 @@ class GaussianDiffusion(nn.Module):
 
         c_epst = torch.zeros_like(self.betas)
         c_epst[1:] = (1 - self.m[:-1]) * delta_t_given_t_1 / delta[1:] \
-                     * torch.sqrt(1-self.alpha_bar[1:]) / self.sqrt_alpha_bar[1:]
+                     * torch.sqrt(1-self.alpha_bar[1:]) / sqrt_alphas
 
         # estimated variance
         delta_estimated = torch.zeros_like(self.betas)
