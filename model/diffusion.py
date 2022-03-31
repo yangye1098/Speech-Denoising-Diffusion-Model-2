@@ -94,7 +94,7 @@ class GaussianDiffusion(nn.Module):
         # Supportive Parameters
         supportive_gamma = torch.zeros_like(self.betas)
         supportive_gamma[1] = 0.2
-        supportive_gamma[2:] = sigma[2:]/(self.alphas[1:-1]**0.5)
+        supportive_gamma[2:] = sigma[2:]
 
         supportive_sigma_hat = torch.zeros_like(self.betas)
         # supportive_sigma_hat[1:] = (sigma[1:] - supportive_gamma[1:])
@@ -186,9 +186,9 @@ class GaussianDiffusion(nn.Module):
         """
 
         # mean
-        mu_t = (x_t - self.predicted_noise_coeff[t] * predicted_noise)/(self.alphas[t])**0.5
+        mu_t = (x_t - self.predicted_noise_coeff[t] * predicted_noise)
         # add gaussian noise with std of sigma
-        x_t_1 = (1-self.supportive_gamma[t]) * mu_t + self.supportive_gamma[t] * self.sqrt_alpha_bar[t-1]*condition
+        x_t_1 = ((1-self.supportive_gamma[t]) * mu_t + self.supportive_gamma[t] * self.sqrt_alpha_bar[t-1]*condition)/(self.alphas[t])**0.5
         if t > 1:
             noise = torch.randn_like(x_t)
             x_t_1 += self.supportive_sigma_hat[t] * noise
