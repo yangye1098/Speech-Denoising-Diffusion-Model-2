@@ -184,6 +184,9 @@ class GaussianDiffusion(nn.Module):
         predicted_noise is the noise predicted by the denoising model
         condition is the conditional input
         """
+        if t == self.num_timesteps + 1:
+            #  ignore xT  use condition
+            x_t = condition
 
         # mean
         mu_t = (x_t - self.predicted_noise_coeff[t] * predicted_noise)
