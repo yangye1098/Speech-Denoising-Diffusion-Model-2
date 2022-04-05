@@ -77,6 +77,7 @@ class GaussianDiffusion(nn.Module):
         self.register_buffer('alpha_bar', alpha_bar)
         self.register_buffer('sqrt_alpha_bar', sqrt_alpha_bar)
         # standard deviation
+        print(self.alpha_bar[-1])
 
         self.calculate_p_coeffs()
         self.calculate_coeffs_conditional()
@@ -166,7 +167,7 @@ class GaussianDiffusion(nn.Module):
         """
 
         # mean
-        x_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
+        x_t_1 = (x_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
         # add gaussian noise with std of sigma
         if t > 1:
             noise = torch.randn_like(x_t)
@@ -207,33 +208,33 @@ class GaussianDiffusion(nn.Module):
 
         return x_t_1.clamp_(-1., 1.)
 
-    def q_stochastic(self, y_0, noise, t_is_integer=False):
+    def q_stochastic(self, x_0, noise, t_is_integer=False):
         """
-        y_0 has shape of [B, 1, T]
+        x_0 has shape of [B, 1, T]
         choose a random diffusion step to calculate loss
         """
         # 0 dim is the batch size
-        b = y_0.shape[0]
-        alpha_bar_sample_shape = torch.ones(y_0.ndim, dtype=torch.int)
+        b = x_0.shape[0]
+        alpha_bar_sample_shape = torch.ones(x_0.ndim, dtype=torch.int)
         alpha_bar_sample_shape[0] = b
 
         # choose random step for each one in this batch
         # change to torch
-        t = torch.randint(1, self.num_timesteps + 1, [b], device=y_0.device)
+        t = torch.randint(1, self.num_timesteps + 1, [b], device=x_0.device)
         if t_is_integer:
             sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
             random_step = 0
         else:
             # sample noise level using uniform distribution
             l_a, l_b = self.sqrt_alpha_bar[t - 1], self.sqrt_alpha_bar[t]
-            random_step =  torch.rand(b, device=y_0.device)
+            random_step =  torch.rand(b, device=x_0.device)
             sqrt_alpha_bar_sample = l_a + random_step * (l_b - l_a)
 
         sqrt_alpha_bar_sample = sqrt_alpha_bar_sample.view(tuple(alpha_bar_sample_shape))
 
-        y_t = sqrt_alpha_bar_sample * y_0 + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
+        x_t = sqrt_alpha_bar_sample * x_0 + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
 
-        return y_t, sqrt_alpha_bar_sample, (t+random_step).view(tuple(alpha_bar_sample_shape))
+        return x_t, sqrt_alpha_bar_sample, (t+random_step).view(tuple(alpha_bar_sample_shape))
 
     def q_stochastic_conditional(self, x_0, y, noise):
         """
