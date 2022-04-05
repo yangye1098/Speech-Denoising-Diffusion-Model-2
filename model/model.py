@@ -28,7 +28,7 @@ class SDDM(BaseModel):
     # train step
     def forward(self, target, condition):
         """
-        target is the target sourse
+        target is the target source
         condition is the noisy conditional input
         """
 
@@ -112,8 +112,10 @@ class SDDM(BaseModel):
                     time_steps = t * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
                     predicted = self.noise_estimate_model(condition, x_t, time_steps)
 
-                if self.p_transition == 'original':
+                if self.p_transition == 'original' or self.p_transition == 'condition_in':
                     x_t = self.diffusion.p_transition(x_t, t, predicted)
+                elif self.p_transition == 'sr3':
+                    x_t = self.diffusion.p_transition_sr3(x_t, t, predicted)
                 elif self.p_transition == 'supportive':
                     x_t = self.diffusion.p_transition_supportive(x_t, t, predicted, condition)
                 elif self.p_transition == 'conditional':
