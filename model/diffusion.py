@@ -272,7 +272,7 @@ class GaussianDiffusion(nn.Module):
         noise_level_sample_shape = torch.ones(condition.ndim, dtype=torch.int)
         noise_level_sample_shape[0] = b
 
-        t = (self.num_timesteps +1)* torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+        t = self.num_timesteps* torch.ones(tuple(noise_level_sample_shape), device=condition.device)
         t = t.type(torch.LongTensor)
 
         sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
@@ -293,7 +293,7 @@ class GaussianDiffusion(nn.Module):
         noise_level_sample_shape = torch.ones(condition.ndim, dtype=torch.int)
         noise_level_sample_shape[0] = b
 
-        t = (self.num_timesteps +1)* torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+        t = self.num_timesteps* torch.ones(tuple(noise_level_sample_shape), device=condition.device)
         t = t.type(torch.LongTensor)
 
         sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
