@@ -273,7 +273,8 @@ class GaussianDiffusion(nn.Module):
         noise_level_sample_shape[0] = b
 
         # choose random step [1, num_timesteps] for each one in this batch
-        t = self.num_timesteps * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+        t = (self.num_timesteps +1)* torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+        t = t.type(torch.LongTensor)
 
         sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
 
