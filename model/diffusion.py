@@ -147,34 +147,32 @@ class GaussianDiffusion(nn.Module):
 
 
     @torch.no_grad()
-    def p_transition_sr3(self, y_t, t, predicted):
+    def p_transition_sr3(self, x_t, t, predicted):
         """
         sr3 p_transition
         noise variance is different from Ho et al 2020
         """
-        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
+        x_t_1 = (x_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
         if t > 1:
-            noise = torch.randn_like(y_t)
-            y_t_1 += torch.sqrt(self.betas[t]) * noise
+            noise = torch.randn_like(x_t)
+            x_t_1 += torch.sqrt(self.betas[t]) * noise
 
-        y_t_1.clamp_(-1., 1.)
-        return y_t_1
+        return x_t_1.clamp_(-1., 1.)
 
     @torch.no_grad()
-    def p_transition(self, y_t, t, predicted):
+    def p_transition(self, x_t, t, predicted):
         """
         p_transition from Ho et al 2020, and wavegrad, conditioned on t, t is scalar
         """
 
         # mean
-        y_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
+        x_t_1 = (y_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
         # add gaussian noise with std of sigma
         if t > 1:
-            noise = torch.randn_like(y_t)
-            y_t_1 += self.sigma[t] * noise
+            noise = torch.randn_like(x_t)
+            x_t_1 += self.sigma[t] * noise
 
-        y_t_1.clamp_(-1., 1.)
-        return y_t_1
+        return x_t_1.clamp_(-1., 1.)
 
     @torch.no_grad()
     def p_transition_supportive(self, x_t, t, predicted_noise, condition):
@@ -185,9 +183,6 @@ class GaussianDiffusion(nn.Module):
         predicted_noise is the noise predicted by the denoising model
         condition is the conditional input
         """
-        if t == self.num_timesteps + 1:
-            #  ignore xT  use condition
-            x_t = condition
 
         # mean
         mu_t = (x_t - self.predicted_noise_coeff[t] * predicted_noise)
@@ -203,20 +198,14 @@ class GaussianDiffusion(nn.Module):
         """
         conditional p transition
         """
-        if t == self.num_timesteps + 1:
-            # T step, ignore x_t input and calculate conditional xt
-            x_t_1 = self.sqrt_alpha_bar[t] * condition + self.sqrt_delta[t] * torch.randn_like(condition)
-        else:
-
-            mean = self.c_xt[t] * x_t + self.c_yt[t] * condition - self.c_epst[t] * predicted_noise
-            x_t_1 = mean
-            if t > 1:
-                # add gaussian noise portion
-                noise = torch.randn_like(x_t)
-                x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
+        mean = self.c_xt[t] * x_t + self.c_yt[t] * condition - self.c_epst[t] * predicted_noise
+        x_t_1 = mean
+        if t > 1:
+            # add gaussian noise portion
+            noise = torch.randn_like(x_t)
+            x_t_1 = x_t_1 + self.sqrt_delta_estimated[t] * noise
 
         return x_t_1.clamp_(-1., 1.)
-
 
     def q_stochastic(self, y_0, noise, t_is_integer=False):
         """
@@ -274,6 +263,45 @@ class GaussianDiffusion(nn.Module):
         # use sqrt_alpha_bar as condition
         return x_t, combined_noise, sqrt_alpha_bar_sample
 
+    def get_x_T(self, condition):
+
+        # 0 dim is the batch size
+
+        noise = torch.randn_like(condition, device=condition.device)
+        b = condition.shape[0]
+        noise_level_sample_shape = torch.ones(condition.ndim, dtype=torch.int)
+        noise_level_sample_shape[0] = b
+
+        # choose random step [1, num_timesteps] for each one in this batch
+        t = self.num_timesteps * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+
+        sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
+
+        sqrt_alpha_bar_sample = sqrt_alpha_bar_sample.view(tuple(noise_level_sample_shape))
+
+        x_T = sqrt_alpha_bar_sample * condition + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
+
+        # use sqrt_alpha_bar as condition
+        return x_T
+
+    def get_x_T_conditional(self, condition):
+
+        # 0 dim is the batch size
+
+        noise = torch.randn_like(condition, device=condition.device)
+        b = condition.shape[0]
+        noise_level_sample_shape = torch.ones(condition.ndim, dtype=torch.int)
+        noise_level_sample_shape[0] = b
+
+        t = self.num_timesteps * torch.ones(tuple(noise_level_sample_shape), device=condition.device)
+
+        sqrt_alpha_bar_sample = self.sqrt_alpha_bar[t]
+        sqrt_alpha_bar_sample = sqrt_alpha_bar_sample.view(tuple(noise_level_sample_shape))
+
+        x_T = sqrt_alpha_bar_sample * condition + self.sqrt_delta[t] * noise
+
+        # use sqrt_alpha_bar as condition
+        return x_T
 
     def get_noise_level(self, t):
         """
