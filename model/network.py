@@ -4,6 +4,6 @@ from .waveunet2 import Waveunet2
 from .waveunet3 import Waveunet3
 from .UNetModified import UNetModified
 from .UNetModified2 import UNetModified2
-from .UNetModified3 import UNetModified3
+from .UNet_SubpixelConv import UNetSP
 from .tstnn import TSTNN
 from .diffwave import  DiffWave

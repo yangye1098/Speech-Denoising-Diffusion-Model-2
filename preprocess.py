@@ -34,6 +34,5 @@ if __name__ == '__main__':
                       help='the directory to put the processed files')
     args.add_argument('sample_rate', type=int,
                       help='the sample rate to resample')
-    # custom cli options to modify configuration from default values given in json file.
     args = args.parse_args()
     main(args.dir, args.out, args.sample_rate)
