@@ -2,7 +2,7 @@ import torch
 from pathlib import Path
 from data_loader.data_loaders import OutputDataset
 from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
-from torchmetrics.audio.si_snr import ScaleInvariantSignalNoiseRatio
+from torchmetrics import ScaleInvariantSignalNoiseRatio
 from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 from tqdm import tqdm
 import numpy as np
