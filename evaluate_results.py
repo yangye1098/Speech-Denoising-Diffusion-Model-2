@@ -8,6 +8,7 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 from parse_config import ConfigParser
+import logging
 
 
 def evaluate(samples_path, datatype, sample_rate, metrics, logger):
@@ -80,4 +81,6 @@ if __name__ == '__main__':
     datatype = '.wav'
     sample_rate = 16000
     metrics = {'pesq_wb', 'stoi', 'sisnr'}
-    loadResults(samples_path, datatype, sample_rate, metrics)
+    # loadResults(samples_path, datatype, sample_rate, metrics)
+    logger = logging.getLogger(__name__)
+    evaluate(samples_path, datatype, sample_rate, metrics, logger)
