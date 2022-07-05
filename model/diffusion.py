@@ -66,7 +66,7 @@ class GaussianDiffusion(nn.Module):
         if schedule == 'linear':
             betas[1:] = torch.linspace(linear_start, linear_end, n_timestep, device=device, dtype=torch.float32)
         elif schedule == 'quad':
-            betas[1:] = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, device=device, dtype=np.float32) ** 2
+            betas[1:] = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, device=device, dtype=torch.float32) ** 2
         else:
             raise NotImplementedError
 
