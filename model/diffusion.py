@@ -79,7 +79,6 @@ class GaussianDiffusion(nn.Module):
         self.register_buffer('alpha_bar', alpha_bar)
         self.register_buffer('sqrt_alpha_bar', sqrt_alpha_bar)
         # standard deviation
-        print(self.alpha_bar[-1])
 
         self.calculate_p_coeffs()
         self.calculate_coeffs_conditional()
