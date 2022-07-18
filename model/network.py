@@ -6,5 +6,6 @@ from .UNetModified import UNetModified
 from .UNetModified2 import UNetModified2
 from .UNet_SubpixelConv import UNetSP
 from .UNetTST import UNetTST
+from .CAUNet import CAUNet
 from .tstnn import TSTNN
 from .diffwave import  DiffWave
