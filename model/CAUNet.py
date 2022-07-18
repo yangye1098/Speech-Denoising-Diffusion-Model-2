@@ -61,13 +61,9 @@ class FeatureWiseAffine(nn.Module):
     def __init__(self, noise_level_channels, out_channels, use_affine_level=False):
         super(FeatureWiseAffine, self).__init__()
         self.use_affine_level = use_affine_level
-        n_expand_channels = noise_level_channels * 4
 
         self.noise_func = nn.Sequential(
-            PositionalEncoding(noise_level_channels),
-            nn.Linear(noise_level_channels, n_expand_channels),
-            nn.PReLU(n_expand_channels),
-            nn.Linear(n_expand_channels, out_channels*(1+self.use_affine_level))
+            nn.Linear(noise_level_channels, out_channels*(1+self.use_affine_level))
         )
 
     def forward(self, x, noise_embed):
@@ -320,6 +316,14 @@ class CAUNet(nn.Module):
     ):
         super().__init__()
 
+        noise_level_channel = inner_channel
+        self.noise_level_mlp = nn.Sequential(
+            PositionalEncoding(noise_level_channel),
+            nn.Linear(noise_level_channel, noise_level_channel * 4),
+            nn.PReLU(noise_level_channel*4),
+            nn.Linear(noise_level_channel * 4, noise_level_channel)
+        )
+
 
         self.segment = SignalToFrames(num_samples, segment_len, segment_stride)
         # first conv raise # channels to inner_channel
@@ -351,6 +355,7 @@ class CAUNet(nn.Module):
         """
         # expand to 4d
         noise_level = noise_level.squeeze() #[B]
+        noise_level = self.noise_level_mlp(noise_level)
         x = self.segment(x)
         y_t = self.segment(y_t)
 
