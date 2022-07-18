@@ -61,9 +61,11 @@ class FeatureWiseAffine(nn.Module):
     def __init__(self, noise_level_channels, out_channels, use_affine_level=False):
         super(FeatureWiseAffine, self).__init__()
         self.use_affine_level = use_affine_level
-
+        n_expand_channels = noise_level_channels * 4
         self.noise_func = nn.Sequential(
-            nn.Linear(noise_level_channels, out_channels*(1+self.use_affine_level))
+            nn.Linear(noise_level_channels, n_expand_channels),
+            nn.PReLU(n_expand_channels),
+            nn.Linear(n_expand_channels, out_channels*(1+self.use_affine_level))
         )
 
     def forward(self, x, noise_embed):
@@ -317,12 +319,7 @@ class CAUNet(nn.Module):
         super().__init__()
 
         noise_level_channel = inner_channel
-        self.noise_level_mlp = nn.Sequential(
-            PositionalEncoding(noise_level_channel),
-            nn.Linear(noise_level_channel, noise_level_channel * 4),
-            nn.PReLU(noise_level_channel*4),
-            nn.Linear(noise_level_channel * 4, noise_level_channel)
-        )
+        self.noise_encoding = PositionalEncoding(noise_level_channel)
 
 
         self.segment = SignalToFrames(num_samples, segment_len, segment_stride)
@@ -355,7 +352,7 @@ class CAUNet(nn.Module):
         """
         # expand to 4d
         noise_level = noise_level.squeeze() #[B]
-        noise_level = self.noise_level_mlp(noise_level)
+        encoded_noise_level = self.noise_encoding(noise_level)
         x = self.segment(x)
         y_t = self.segment(y_t)
 
@@ -363,13 +360,13 @@ class CAUNet(nn.Module):
         input = torch.cat([x, y_t], dim=1)
         input = self.first_conv(input)
         for layer in self.downs:
-            input = layer(input, noise_level)
+            input = layer(input, encoded_noise_level)
             feats.append(input)
 
         input = self.mid(input)
 
         for layer in self.ups:
-            input = layer(input, feats.pop(), noise_level)
+            input = layer(input, feats.pop(), encoded_noise_level)
 
         output = self.final_conv(input)
         output = self.segment.overlapAdd(output)
