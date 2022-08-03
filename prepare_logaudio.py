@@ -3,7 +3,6 @@ import torch
 import torchaudio
 from torchaudio import transforms as TT
 from parse_config import ConfigParser
-import matplotlib.pyplot as plt
 from glob import glob
 from tqdm import tqdm
 import argparse
