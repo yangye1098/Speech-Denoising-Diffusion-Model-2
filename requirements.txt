@@ -1,7 +1,0 @@
-torch>=1.1
-numpy~=1.21.5
-tqdm~=4.62.3
-tensorboard>=1.14
-
-torchaudio~=0.10.1
-simpleaudio~=1.0.4

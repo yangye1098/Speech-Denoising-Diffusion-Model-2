@@ -22,7 +22,7 @@ def generate_inventory(path, file_type='.wav'):
 
 class AudioDataset(Dataset):
     def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
-        if datatype not in ['.wav', '.spec.npy', '.mel.npy']:
+        if datatype not in ['.wav', '.logwav.npy', '.spec.npy', '.mel.npy']:
             raise NotImplementedError
         self.datatype = datatype
         self.sample_rate = sample_rate
@@ -63,10 +63,30 @@ class AudioDataset(Dataset):
             clean = torch.from_numpy(np.load(self.clean_path/self.inventory[index]))
             noisy = torch.from_numpy(np.load(self.noisy_path/self.inventory[index]))
 
+        elif self.datatype == '.logwav.npy':
+            clean = torch.from_numpy(np.load(self.clean_path/self.inventory[index]))
+            noisy = torch.from_numpy(np.load(self.noisy_path/self.inventory[index]))
+
+            n_frames = clean.shape[-1]
+            assert (n_frames == noisy.shape[-1])
+
+            if n_frames > self.T > 0:
+                start_frame = torch.randint(0, n_frames - self.T, [1])
+                clean = clean[:, start_frame:(start_frame+self.T)]
+                noisy = noisy[:, start_frame:(start_frame+self.T)]
+
+            elif self.T > n_frames > 0:
+                clean = F.pad(clean, (0, self.T - n_frames), 'constant', 0)
+                noisy = F.pad(noisy, (0, self.T - n_frames), 'constant', 0)
+
         return clean, noisy, index
 
     def getName(self, idx):
-        name = self.inventory[idx].rsplit('.', 1)[0]
+        if self.datatype == '.wav':
+            name = self.inventory[idx].rsplit('.', 1)[0]
+        else:
+            name = self.inventory[idx].rsplit('.', 2)[0]
+
         return name
 
 
@@ -92,7 +112,6 @@ class InferDataset(AudioDataset):
             assert (sr == self.sample_rate)
             n_frames = clean.shape[-1]
             assert (n_frames == noisy.shape[-1])
-            start_frame = 0
             n_chunck = ceil(n_frames / self.T)
 
             clean = F.pad(clean, (0, n_chunck*self.T - n_frames), 'constant', 0)
@@ -105,6 +124,22 @@ class InferDataset(AudioDataset):
 
         elif self.datatype == '.spec.npy' or self.datatype == '.mel.npy':
             raise NotImplementedError
+
+        elif self.datatype == '.logwav.npy':
+            clean = torch.from_numpy(np.load(self.clean_path/self.inventory[index]))
+            noisy = torch.from_numpy(np.load(self.noisy_path/self.inventory[index]))
+
+            n_frames = clean.shape[-1]
+            assert (n_frames == noisy.shape[-1])
+            n_chunck = ceil(n_frames / self.T)
+
+            clean = F.pad(clean, (0, n_chunck * self.T - n_frames), 'constant', 0)
+            noisy = F.pad(noisy, (0, n_chunck * self.T - n_frames), 'constant', 0)
+
+            clean_stacked = clean.view(n_chunck, 1, self.T)
+            noisy_stacked = noisy.view(n_chunck, 1, self.T)
+
+            index_tensor = index * torch.ones(n_chunck, dtype=torch.long)
 
         return clean_stacked, noisy_stacked, index_tensor
 
@@ -135,7 +170,7 @@ class InferDataLoader(BaseDataLoader):
 
 class OutputDataset(AudioDataset):
     def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
-        if datatype not in ['.wav', '.spec.npy', '.mel.npy']:
+        if datatype not in ['.wav', '.logwav.npy', '.spec.npy', '.mel.npy']:
             raise NotImplementedError
         self.datatype = datatype
         self.sample_rate = sample_rate
