@@ -170,7 +170,7 @@ class InferDataLoader(BaseDataLoader):
 
 class OutputDataset(AudioDataset):
     def __init__(self, data_root, datatype, sample_rate=8000, T=-1):
-        if datatype not in ['.wav', '.logwav.npy', '.spec.npy', '.mel.npy']:
+        if datatype not in ['.wav', '.spec.npy', '.mel.npy']:
             raise NotImplementedError
         self.datatype = datatype
         self.sample_rate = sample_rate
