@@ -15,13 +15,16 @@ from evaluate_results import evaluate
 from parse_config import ConfigParser
 
 torch.backends.cudnn.benchmark = True
-
+from prepare_logaudio import log_modulus_normalize_reverse
 
 def main(config):
+
+    expand_order = 3
+
     logger = config.get_logger('infer')
 
     # setup data_loader instances
-
+    datatype = config['infer_dataset']['args']['datatype']
     sample_rate = config['sample_rate']
 
     infer_dataset = config.init_obj('infer_dataset', module_data, sample_rate=sample_rate, T=config['num_samples'] )
@@ -87,12 +90,31 @@ def main(config):
                     if previous_index > -1:
                         name = infer_dataset.getName(previous_index)
                         # stack back to full audio
-                        torchaudio.save(output_path/f'{name}.wav',
-                                        output[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
-                        torchaudio.save(target_path/f'{name}.wav',
-                                        target[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
-                        torchaudio.save(condition_path/f'{name}.wav',
-                                        condition[batch_index_temp, :, :].view(1, -1).cpu(), sample_rate)
+                        output_one_file = output[batch_index_temp, :, :].reshape(1, -1).cpu()
+                        target_one_file = target[batch_index_temp, :, :].reshape(1, -1).cpu()
+                        condition_one_file = condition[batch_index_temp, :, :].reshape(1, -1).cpu()
+
+                        if datatype == '.wav':
+                            torchaudio.save(output_path/f'{name}.wav',
+                                            output_one_file, sample_rate)
+                            torchaudio.save(target_path/f'{name}.wav',
+                                            target_one_file, sample_rate)
+                            torchaudio.save(condition_path/f'{name}.wav',
+                                            condition_one_file, sample_rate)
+                        elif datatype == '.logwav.npy':
+                            # reverse log modulus
+                            output_one_file = log_modulus_normalize_reverse(output_one_file, expand_order)
+                            target_one_file = log_modulus_normalize_reverse(target_one_file, expand_order)
+                            condition_one_file = log_modulus_normalize_reverse(condition_one_file, expand_order)
+
+
+                            torchaudio.save(output_path/f'{name}.wav',
+                                            output_one_file, sample_rate)
+                            torchaudio.save(target_path/f'{name}.wav',
+                                            target_one_file, sample_rate)
+                            torchaudio.save(condition_path/f'{name}.wav',
+                                            condition_one_file, sample_rate)
+
 
                     batch_index_temp = [b]
                     previous_index = ind
