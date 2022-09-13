@@ -90,7 +90,6 @@ class AudioDataset(Dataset):
         return name
 
 
-
 class AudioDataLoader(BaseDataLoader):
     """
     Load Audio data
@@ -98,8 +97,6 @@ class AudioDataLoader(BaseDataLoader):
     def __init__(self, dataset,  batch_size, shuffle=True, validation_split=0.0, num_workers=1):
         self.dataset =dataset
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
-
-
 
 class InferDataset(AudioDataset):
 
@@ -158,7 +155,6 @@ def infer_data_collate(batch):
     return clean_collated, noisy_collated, index_collated
 
 
-
 class InferDataLoader(BaseDataLoader):
     """
     Load Audio data
@@ -198,9 +194,6 @@ class OutputDataset(AudioDataset):
             raise NotImplementedError
 
         return clean, noisy, output
-
-
-
 
 if __name__ == '__main__':
 
