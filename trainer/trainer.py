@@ -45,7 +45,7 @@ class Trainer(BaseTrainer):
 
         self.target_path = sample_path / 'target'
         self.output_path = sample_path / 'output'
-        self.condition_path = sample_path / 'condtion'
+        self.condition_path = sample_path / 'condition'
         self.target_path.mkdir(parents=True, exist_ok=True)
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.condition_path.mkdir(parents=True, exist_ok=True)
