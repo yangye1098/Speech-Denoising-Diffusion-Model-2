@@ -140,7 +140,8 @@ class GaussianDiffusion(nn.Module):
 
         # estimated variance
         delta_estimated = torch.zeros_like(self.betas)
-        delta_estimated[1:] = delta_t_given_t_1 * delta[1:] / delta[:-1]
+        # delta_estimated[1:] = delta_t_given_t_1 * delta[1:] / delta[:-1]
+        delta_estimated[1:] = delta_t_given_t_1 * delta[:-1] / delta[1:]
 
         self.register_buffer('c_xt', c_xt)
         self.register_buffer('c_yt', c_yt)
