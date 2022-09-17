@@ -73,7 +73,7 @@ class GaussianDiffusion(nn.Module):
             alpha_bar = torch.cumprod(alphas, axis=0)
         elif schedule == "cosine":
             cosine_s = 0.008
-            timesteps = torch.arange(n_timestep + 1, dtype=torch.float32) / n_timestep + cosine_s
+            timesteps = torch.arange(n_timestep + 1, device=device, dtype=torch.float32) / n_timestep + cosine_s
             f = timesteps / (1 + cosine_s) * (torch.pi / 2)
             f = torch.cos(f).pow(2)
             alpha_bar = f / f[0]
