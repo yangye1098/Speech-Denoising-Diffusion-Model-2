@@ -65,9 +65,11 @@ class GaussianDiffusion(nn.Module):
         betas = torch.zeros(n_timestep + 1, dtype=torch.float32, device=device)
         if schedule == 'linear':
             betas[1:] = torch.linspace(linear_start, linear_end, n_timestep, device=device, dtype=torch.float32)
+            alphas = 1 - betas
             alpha_bar = torch.cumprod(alphas, axis=0)
         elif schedule == 'quad':
             betas[1:] = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, device=device, dtype=torch.float32) ** 2
+            alphas = 1 - betas
             alpha_bar = torch.cumprod(alphas, axis=0)
         elif schedule == "cosine":
             cosine_s = 0.008
@@ -77,10 +79,10 @@ class GaussianDiffusion(nn.Module):
             alpha_bar = f / f[0]
             betas[1:] = 1 - alpha_bar[1:] / alpha_bar[:-1]
             betas = betas.clamp(max=0.999)
+            alphas = 1 - betas
         else:
             raise NotImplementedError
 
-        alphas = 1 - betas
 
         sqrt_alpha_bar = torch.sqrt(alpha_bar)
 
