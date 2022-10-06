@@ -66,11 +66,11 @@ class GaussianDiffusion(nn.Module):
         if schedule == 'linear':
             betas[1:] = torch.linspace(linear_start, linear_end, n_timestep, device=device, dtype=torch.float32)
             alphas = 1 - betas
-            alpha_bar = torch.cumprod(alphas, axis=0)
+            alpha_bar = torch.cumprod(alphas, dim=0)
         elif schedule == 'quad':
             betas[1:] = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, device=device, dtype=torch.float32) ** 2
             alphas = 1 - betas
-            alpha_bar = torch.cumprod(alphas, axis=0)
+            alpha_bar = torch.cumprod(alphas, dim=0)
         elif schedule == "cosine":
             cosine_s = 0.008
             timesteps = torch.arange(n_timestep + 1, device=device, dtype=torch.float32) / n_timestep + cosine_s
@@ -327,12 +327,10 @@ class GaussianDiffusion(nn.Module):
 
 
 if __name__ == '__main__':
-    diffussion = GaussianDiffusion(device='cpu')
-    y_0 = torch.ones([2,1, 3])
-    noise = torch.randn_like(y_0)
-    diffussion.q_stochastic(y_0, noise)
+    import matplotlib.pyplot as plt
+    diffusion_cos = GaussianDiffusion(schedule='cosine', n_timestep=1000, device='cpu')
+    diffusion_linear = GaussianDiffusion( n_timestep=1000, device='cpu')
 
-    predicted = noise
-    y_t = y_0
-    diffussion.p_transition(y_t, 0, predicted)
-    diffussion.p_transition(y_t, 1, predicted)
+    plt.plot(diffusion_cos.alpha_bar)
+    plt.plot(diffusion_linear.alpha_bar)
+    plt.show(block=True)

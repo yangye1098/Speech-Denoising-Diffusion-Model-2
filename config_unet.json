@@ -1,35 +1,37 @@
 {
-    "name": "SDDM2_WaveUNet3",
-    "n_gpu": 0,
+    "name": "SDDM2_UNet",
+    "n_gpu": 1,
     "sample_rate": 16000,
-    "num_samples": 16384,
+    "num_samples": 16448,
     "arch": {
         "type": "SDDM",
-        "args": {}
+        "args": {
+            "p_transition": "condition_in",
+            "q_transition": "original"
+        }
     },
 
     "diffusion": {
         "type": "GaussianDiffusion",
         "args": {
             "schedule": "linear",
-            "n_timestep": 1000,
+            "n_timestep": 100,
             "linear_start": 1e-6,
-            "linear_end": 0.01
+            "linear_end": 0.001
         }
     },
     "network": {
-        "type": "UNetModified",
+        "type": "UNetModified2",
         "args": {
             "in_channel": 2,
             "out_channel": 1,
             "inner_channel": 32,
             "norm_groups": 32,
-            "channel_mults": [1, 2, 4, 8, 8],
-            "attn_res": [8],
-            "res_blocks": 3,
+            "channel_mults": [1,2,3,4,5],
+            "res_blocks": 1,
             "dropout": 0,
-            "n_segment": 128,
-            "with_noise_level_emb": true
+            "segment_len": 128,
+            "segment_stride": 64
         }
     },
 
@@ -47,13 +49,21 @@
             "datatype": ".wav"
         }
     },
+
+    "infer_dataset": {
+        "type": "InferDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/test",
+            "datatype": ".wav"
+        }
+    },
     "data_loader": {
         "type": "AudioDataLoader",
         "args":{
-            "batch_size": 4,
+            "batch_size": 16,
             "shuffle": true,
             "validation_split": 0.0,
-            "num_workers": 2
+            "num_workers": 4
         }
     },
     "optimizer": {
@@ -69,13 +79,13 @@
         "sisnr"
     ],
     "trainer": {
-        "epochs": 100,
+        "epochs": 500,
 
         "save_dir": "saved/",
-        "save_period": 1,
+        "save_period": 10,
         "verbosity": 2,
         "n_valid_data_batch": 1,
-        "log_step": 1,
+        "log_step": 100,
         
         "monitor": "min val_loss",
         "early_stop": -1,
