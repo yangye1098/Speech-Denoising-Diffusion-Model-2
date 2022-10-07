@@ -41,22 +41,32 @@ class SignalToFrames(nn.Module):
         return output
 
 
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
 
-# PositionalEncoding Source： https://github.com/lmnt-com/wavegrad/blob/master/src/wavegrad/model.py
+
 class PositionalEncoding(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim=128):
         super().__init__()
         self.dim = dim
+        half_dim = self.dim //2
+        step = torch.arange(half_dim)
+        self.embedding_vector = 10.0 ** (step * 4.0/half_dim)
 
-    def forward(self, noise_level):
-        count = self.dim // 2
-        step = torch.arange(count, dtype=noise_level.dtype,
-                            device=noise_level.device) / count
-        encoding = noise_level.unsqueeze(
-            1) * torch.exp(-math.log(1e4) * step.unsqueeze(0))
-        encoding = torch.cat(
-            [torch.sin(encoding), torch.cos(encoding)], dim=-1)
+
+    def forward(self, diffusion_step):
+        # diffusion_step [B, 1, 1, 1]
+        diffusion_step = diffusion_step.view(-1, 1)
+        x = self._build_embedding(diffusion_step)
+        return x
+
+    def _build_embedding(self, diffusion_step):
+        self.embedding_vector = self.embedding_vector.to(diffusion_step.device)
+        encoding = diffusion_step * self.embedding_vector
+        encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=-1)  # [B, self.dim]
         return encoding
+
 
 
 class FeatureWiseAffine(nn.Module):
@@ -78,10 +88,6 @@ class FeatureWiseAffine(nn.Module):
             x = x + self.noise_func(noise_embed).view(batch, -1, 1, 1)
         return x
 
-
-class Swish(nn.Module):
-    def forward(self, x):
-        return x * torch.sigmoid(x)
 
 
 class Upsample(nn.Module):
@@ -163,7 +169,8 @@ class UNetModified2(nn.Module):
             PositionalEncoding(noise_level_channel),
             nn.Linear(noise_level_channel, noise_level_channel * 4),
             Swish(),
-            nn.Linear(noise_level_channel * 4, noise_level_channel)
+            nn.Linear(noise_level_channel * 4, noise_level_channel),
+            Swish()
         )
 
 
@@ -227,20 +234,19 @@ class UNetModified2(nn.Module):
         n_channel_in = n_channel_out
         self.final_conv = Block(n_channel_in, out_channel, groups=norm_groups)
 
-    def forward(self, x, y_t, noise_level):
+    def forward(self, x, y_t, diffusion_step):
         """
             x: [B, 1, T]
             y_t: [B, 1, T]
             time: [B, 1, 1]
         """
         # expand to 4d
-        noise_level = noise_level.unsqueeze(dim=-1)
         x = self.segment(x)
         y_t = self.segment(y_t)
 
         input = torch.cat([x, y_t], dim=1)
 
-        t = self.noise_level_mlp(noise_level)
+        t = self.noise_level_mlp(diffusion_step)
 
         feats = []
         for layer in self.downs:
