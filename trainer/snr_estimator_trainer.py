@@ -4,16 +4,18 @@ from utils import inf_loop, MetricTracker
 import time
 from datetime import timedelta
 import torchaudio
+from model.segmentor import segment_sisnr
 
 
 class SNREstimatorTrainer(BaseTrainer):
     """
     Trainer class
     """
-    def __init__(self, model, criterion, metric_ftns, optimizer, config, device,
+    def __init__(self, model, segmentor, criterion, metric_ftns, optimizer, config, device,
                  data_loader, valid_data_loader=None,
                  lr_scheduler=None, len_epoch=None):
         super().__init__(model, criterion, metric_ftns, optimizer, config)
+        self.segmentor = segmentor
         self.config = config
         self.device = device
         self.data_loader = data_loader
@@ -56,8 +58,11 @@ class SNREstimatorTrainer(BaseTrainer):
             target, condition = target.to(self.device), condition.to(self.device)
             self.optimizer.zero_grad()
             # use noise in the loss function instead of target (y_0)
-            output, sisnr = self.model(target, condition)
-            loss = self.criterion(output, sisnr)
+            target = self.segmentor(target)
+            condition = self.segmentor(condition)
+            true_sisnr = segment_sisnr(condition, target)
+            output = self.model(condition).squeeze()
+            loss = self.criterion(output, true_sisnr)
 
             loss.backward()
             #grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
@@ -102,9 +107,11 @@ class SNREstimatorTrainer(BaseTrainer):
 
                 target, condition = target.to(self.device), condition.to(self.device)
 
-                output, sisnr = self.model(target,condition)
-                # use noise in the loss function instead of target (y_0)
-                loss = self.criterion(output, sisnr)
+                target = self.segmentor(target)
+                condition = self.segmentor(condition)
+                true_sisnr = segment_sisnr(condition, target)
+                output = self.model(condition).squeeze()
+                loss = self.criterion(output, true_sisnr)
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                 self.valid_metrics.update('loss', loss.item())

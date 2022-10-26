@@ -4,10 +4,8 @@
     "sample_rate": 16000,
     "num_samples": 16448,
     "arch": {
-        "type": "SNR_Estimator",
+        "type": "SNREstimator",
         "args": {
-            "segment_len": 128,
-            "segment_stride": 64,
             "inner_channel": 32,
             "norm_groups": 32,
             "channel_mults": [1,2,3,4,5],
@@ -15,6 +13,14 @@
             "dropout": 0
         }
     },
+    "segmentor": {
+        "type": "Segmentor",
+        "args": {
+            "F": 128,
+            "stride": 64
+        }
+    },
+
     "network": {
         "type": "UNetModified2",
         "args": {
@@ -46,10 +52,10 @@
     "data_loader": {
         "type": "AudioDataLoader",
         "args":{
-            "batch_size": 16,
+            "batch_size": 1,
             "shuffle": true,
             "validation_split": 0.0,
-            "num_workers": 4
+            "num_workers": 1
         }
     },
     "optimizer": {

@@ -5,6 +5,7 @@ import data_loader.data_loaders as module_data
 import model.loss as module_loss
 import model.metric as module_metric
 import model.snr_estimator as module_arch
+import model.segmentor as module_segmentor
 from parse_config import ConfigParser
 from trainer import SNREstimatorTrainer
 from utils import prepare_device
@@ -26,8 +27,9 @@ def main(config):
     device, device_ids = prepare_device(config['n_gpu'])
 
     logger.info('Finish preparing gpu')
-
-    model = config.init_obj('arch', module_arch, num_samples=config['num_samples'])
+    segmentor = config.init_obj('segmentor', module_segmentor, num_samples=config['num_samples'])
+    segmentor = segmentor.to(device)
+    model = config.init_obj('arch', module_arch, n_segments=segmentor.n_segments, segment_len=segmentor.F)
 
     # prepare for (multi-device) GPU training
     model = model.to(device)
@@ -46,7 +48,7 @@ def main(config):
     #lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
     lr_scheduler = None
 
-    trainer = SNREstimatorTrainer(model, criterion, metrics, optimizer,
+    trainer = SNREstimatorTrainer(model, segmentor, criterion, metrics, optimizer,
                       config=config,
                       device=device,
                       data_loader=tr_data_loader,
