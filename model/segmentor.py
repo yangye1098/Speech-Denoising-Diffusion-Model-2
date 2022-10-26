@@ -67,7 +67,7 @@ class Segmentor(nn.Module):
             sig: [B, 1, n_samples]
             return: [B, 1, nframes, F]
         """
-        self.weight_mat = self.weight_mat.to(sig.device())
+        self.weight_mat = self.weight_mat.to(sig.device)
         return self.weight_mat * sig[:, :, self.idx_mat]
 
     def overlapAdd(self, input):
