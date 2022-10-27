@@ -345,7 +345,7 @@ class VariableGaussianDiffusion(nn.Module):
         for b in range(snr_estimate.shape[0]):
             linear_ends = (10.**( snr_estimate[b, :].squeeze()/-20)/80)**2
             # betas_temp: [n_timestep, N]
-            betas_temp = np.linspace(self.linear_start*np.ones(linear_ends.shape[0]), linear_ends, self.num_timesteps, dtype=np.float32)
+            betas_temp = np.linspace(self.linear_start*np.ones(linear_ends.shape[0]), linear_ends.cpu().numpy(), self.num_timesteps, dtype=np.float32)
             betas[b, :, 1:] = torch.from_numpy(betas_temp.T).to(self.device)
 
         betas = betas.unsqueeze(1)
