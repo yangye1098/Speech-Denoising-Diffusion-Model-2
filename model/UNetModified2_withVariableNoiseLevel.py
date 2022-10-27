@@ -14,7 +14,7 @@ class PositionalEncoding(nn.Module):
         half_dim = self.dim //2
         step = torch.arange(half_dim)
         # TODO: check embedding vector
-        self.embedding_vector = 10.0 ** (step * 4.0/half_dim)
+        self.embedding_vector = 1e7 * 10.0 ** (-step * 4.0/half_dim)
         self.embedding_vector = self.embedding_vector.view(-1, 1, 1)
 
 
@@ -23,9 +23,9 @@ class PositionalEncoding(nn.Module):
         x = self._build_embedding(diffusion_step)
         return x
 
-    def _build_embedding(self, diffusion_step):
-        self.embedding_vector = self.embedding_vector.to(diffusion_step.device)
-        encoding = diffusion_step * self.embedding_vector
+    def _build_embedding(self, noise_level):
+        self.embedding_vector = self.embedding_vector.to(noise_level.device)
+        encoding = noise_level * self.embedding_vector
         encoding = torch.cat([torch.sin(encoding), torch.cos(encoding)], dim=1)  # [B, self.dim]
         return encoding
 
