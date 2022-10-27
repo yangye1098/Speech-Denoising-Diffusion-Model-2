@@ -33,7 +33,7 @@ def main(config, snr_estimator_checkpoint):
     # build model architecture
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     diffusion = config.init_obj('diffusion', module_diffusion, device=device)
-    network = config.init_obj('network', module_network, num_samples=config['num_samples'])
+    network = config.init_obj('network', module_network)
 
     segmentor = config.init_obj('segmentor', module_segmentor, num_samples=config['num_samples'])
     segmentor = segmentor.to(device)
