@@ -175,14 +175,16 @@ class SDDM_with_SNREstimator(BaseModel):
         return predicted, noise
 
     @torch.no_grad()
-    def infer(self, condition, continuous=False):
+    def infer(self, condition):
         # condition is audio
         # initial input
 
-        x_t = self.diffusion.get_x_T(condition)
+        condition = self.segmentor(condition)
+        snr_estimation = self.snr_estimator(condition)
+
+        x_t = self.diffusion.get_x_T(condition, snr_estimation)
 
         # iterative refinement
-        snr_estimation, true_snr = self.snr_estimator(None, condition)
         for t in reversed(range(1, self.num_timesteps+1)):
             if self.noise_condition == 'sqrt_alpha_bar':
                 noise_level = self.diffusion.get_noise_level(t, snr_estimation)
@@ -192,12 +194,13 @@ class SDDM_with_SNREstimator(BaseModel):
                 raise NotImplementedError
 
             if self.p_transition == 'original' or self.p_transition == 'condition_in':
-                x_t = self.diffusion.p_transition(x_t, t, predicted)
+                x_t = self.diffusion.p_transition(x_t, t, snr_estimation, predicted)
             else:
 
                 raise NotImplementedError
 
-            return x_t
+        x_t = self.segmentor.overlapAdd(x_t)
+        return x_t
 
 
 class SDDM_spectrogram(SDDM):

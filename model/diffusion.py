@@ -367,17 +367,22 @@ class VariableGaussianDiffusion(nn.Module):
 
 
     @torch.no_grad()
-    def p_transition(self, x_t, t, predicted):
+    def p_transition(self, x_t, t, snr_estimate, predicted):
         """
         p_transition from Ho et al 2020, and wavegrad, conditioned on t, t is scalar
         """
 
+        betas, alpha_bar = self.get_beta_schedule(snr_estimate)  # [B, 1, N, num_timesteps]
+        betas_t = betas[:, :, :, [t]]
+        alpha_bar_t = alpha_bar[:, :, :, [t]]
         # mean
-        x_t_1 = (x_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
+
+        x_t_1 = (x_t - betas_t/ torch.sqrt(1-alpha_bar_t) * predicted)/(1 - betas[:, :, :, [t]])**0.5
         # add gaussian noise with std of sigma
         if t > 1:
             noise = torch.randn_like(x_t)
-            x_t_1 += self.sigma[t] * noise
+            sigma = ((1.0 - alpha_bar[:, :, :, [t-1]]) / (1.0 - alpha_bar_t) * betas_t) ** 0.5
+            x_t_1 += sigma * noise
 
         return x_t_1.clamp_(-1., 1.)
 
@@ -413,19 +418,17 @@ class VariableGaussianDiffusion(nn.Module):
     def get_x_T(self, condition, snr_estimate):
         """
         condition: [B, 1, N, L]
-        snr_estimate: [B, 1, N]
+        snr_estimate: [B, N]
         """
         # 0 dim is the batch size
-        snr_estimate = snr_estimate.squeeze(1) # [B, N]
         noise = torch.randn_like(condition, device=condition.device)
         b = condition.shape[0]
 
         # use same t across batch for simplification
-        t = self.num_timesteps
+        t = [self.num_timesteps]
 
         _, alpha_bar = self.get_beta_schedule(snr_estimate) #[B, 1, N, num_timesteps]
         sqrt_alpha_bar_sample = torch.sqrt(alpha_bar[:, :, :, t]) #[B, 1, N, 1]
-
         x_T = sqrt_alpha_bar_sample * condition + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
 
         # use sqrt_alpha_bar as condition
@@ -436,7 +439,9 @@ class VariableGaussianDiffusion(nn.Module):
         """
         noise level is sqrt alpha bar
         """
-        return self.sqrt_alpha_bar[t]
+        _, alpha_bar = self.get_beta_schedule(snr_estimate) #[B, 1, N, num_timesteps]
+        sqrt_alpha_bar_sample = torch.sqrt(alpha_bar[:, :, :, [t]]) #[B, 1, N, 1]
+        return sqrt_alpha_bar_sample
 
 
 

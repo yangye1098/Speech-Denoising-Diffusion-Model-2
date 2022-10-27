@@ -15,7 +15,7 @@ class PositionalEncoding(nn.Module):
         step = torch.arange(half_dim)
         # TODO: check embedding vector
         self.embedding_vector = 1e7 * 10.0 ** (-step * 4.0/half_dim)
-        self.embedding_vector = self.embedding_vector.view(-1, 1, 1)
+        self.embedding_vector = self.embedding_vector.view(1, -1, 1, 1)
 
 
     def forward(self, diffusion_step):
@@ -224,8 +224,6 @@ class UNetModified2_VariableNoiseLevel(nn.Module):
             else:
                 input = layer(input)
                 t = self.noise_level_down[n_downsample](t)
-                print(input.shape)
-                print(t.shape)
                 n_downsample = n_downsample+1
             feats.append(input)
 
