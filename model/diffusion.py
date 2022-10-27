@@ -328,22 +328,24 @@ class GaussianDiffusion(nn.Module):
 
 class VariableGaussianDiffusion(nn.Module):
     def __init__(
-        self,
-        n_timestep=100,
-        device='cuda'
+            self,
+            n_timestep=100,
+            snr_estimate_scale = 100,
+            device='cuda'
     ):
         super().__init__()
         self.num_timesteps = n_timestep
+        self.snr_estimate_scale = snr_estimate_scale
         self.device=device
         self.linear_start=1e-6,
 
 
     def get_beta_schedule(self, snr_estimate):
         betas = torch.zeros(snr_estimate.shape+(self.num_timesteps+1,), dtype=torch.float32, device=self.device)
-        # snr_ests = -20 * np.log10(80 * linear_ends ** 0.5)
-        # linear_end = (10. ** (snr / -20) / 80) ** 2
+        # snr_ests = -20 * np.log10(snr_estimate_scale * linear_ends ** 0.5)
+        # linear_end = (10. ** (snr / -20) /snr_estimate_scale ) ** 2
         for b in range(snr_estimate.shape[0]):
-            linear_ends = (10.**( snr_estimate[b, :].squeeze()/-20)/80)**2
+            linear_ends = (10.**( snr_estimate[b, :].squeeze()/-20)/self.snr_estimate_scale)**2
             # betas_temp: [n_timestep, N]
             betas_temp = np.linspace(self.linear_start*np.ones(linear_ends.shape[0]), linear_ends.cpu().numpy(), self.num_timesteps, dtype=np.float32)
             betas[b, :, 1:] = torch.from_numpy(betas_temp.T).to(self.device)
