@@ -326,6 +326,120 @@ class GaussianDiffusion(nn.Module):
         return self.sqrt_alpha_bar[t]
 
 
+class VariableGaussianDiffusion(nn.Module):
+    def __init__(
+        self,
+        n_timestep=100,
+        device='cuda'
+    ):
+        super().__init__()
+        self.num_timesteps = n_timestep
+        self.device=device
+        self.linear_start=1e-6,
+
+
+    def get_beta_schedule(self, snr_estimate):
+        betas = torch.zeros(snr_estimate.shape+(self.num_timesteps+1,), dtype=torch.float32, device=self.device)
+        # snr_ests = -20 * np.log10(80 * linear_ends ** 0.5)
+        # linear_end = (10. ** (snr / -20) / 80) ** 2
+        for b in range(snr_estimate.shape[0]):
+            linear_ends = (10.**( snr_estimate[b, :].squeeze()/-20)/80)**2
+            # betas_temp: [n_timestep, N]
+            betas_temp = np.linspace(self.linear_start*np.ones(linear_ends.shape[0]), linear_ends, self.num_timesteps, dtype=np.float32)
+            betas[b, :, 1:] = torch.from_numpy(betas_temp.T).to(self.device)
+
+        betas = betas.unsqueeze(1)
+        alphas = 1 - betas
+        alpha_bar = torch.cumprod(alphas, dim=-1)
+        return betas, alpha_bar
+
+
+    def calculate_p_coeffs(self):
+
+        # for infer
+        sigma = torch.zeros_like(self.betas)
+        sigma[1:] = ((1.0 - self.alpha_bar[:-1]) / (1.0 - self.alpha_bar[1:]) * self.betas[1:]) ** 0.5
+        predicted_noise_coeff = torch.zeros_like(self.betas)
+        predicted_noise_coeff[1:] = self.betas[1:]/ torch.sqrt(1-self.alpha_bar[1:])
+
+        self.register_buffer('predicted_noise_coeff', predicted_noise_coeff)
+        self.register_buffer('sigma', sigma)
+
+
+    @torch.no_grad()
+    def p_transition(self, x_t, t, predicted):
+        """
+        p_transition from Ho et al 2020, and wavegrad, conditioned on t, t is scalar
+        """
+
+        # mean
+        x_t_1 = (x_t - self.predicted_noise_coeff[t] * predicted)/(self.alphas[t])**0.5
+        # add gaussian noise with std of sigma
+        if t > 1:
+            noise = torch.randn_like(x_t)
+            x_t_1 += self.sigma[t] * noise
+
+        return x_t_1.clamp_(-1., 1.)
+
+
+    def q_stochastic(self, x_0, noise, snr_estimate, t_is_integer=True):
+        """
+        x_0 has shape of [B, N, L]
+        snr_estimate has shape of [B, N]
+        choose a random diffusion step to calculate loss
+        """
+        # 0 dim is the batch size
+        b = x_0.shape[0]
+
+        # use same t across batch for simplification
+        t = torch.randint(1, self.num_timesteps + 1, [1], device=x_0.device)
+
+        if t_is_integer:
+            _, alpha_bar = self.get_beta_schedule(snr_estimate) #[B, 1, N, num_timesteps]
+            sqrt_alpha_bar_sample = torch.sqrt(alpha_bar[:,:, :, t])
+            random_step = 0
+        else:
+            raise NotImplementedError
+            # sample noise level using uniform distribution
+            # l_a, l_b = self.sqrt_alpha_bar[t - 1], self.sqrt_alpha_bar[t]
+            # random_step =  torch.rand(b, device=x_0.device)
+            # sqrt_alpha_bar_sample = l_a + random_step * (l_b - l_a)
+
+        x_t = sqrt_alpha_bar_sample * x_0 + torch.sqrt(1. - torch.square(sqrt_alpha_bar_sample)) * noise
+        # [B, 1, N, 1]
+
+        return x_t, sqrt_alpha_bar_sample, t
+
+    def get_x_T(self, condition, snr_estimate):
+        """
+        condition: [B, 1, N, L]
+        snr_estimate: [B, 1, N]
+        """
+        # 0 dim is the batch size
+        snr_estimate = snr_estimate.squeeze(1) # [B, N]
+        noise = torch.randn_like(condition, device=condition.device)
+        b = condition.shape[0]
+
+        # use same t across batch for simplification
+        t = self.num_timesteps
+
+        _, alpha_bar = self.get_beta_schedule(snr_estimate) #[B, 1, N, num_timesteps]
+        sqrt_alpha_bar_sample = torch.sqrt(alpha_bar[:, :, :, t]) #[B, 1, N, 1]
+
+        x_T = sqrt_alpha_bar_sample * condition + torch.sqrt((1. - torch.square(sqrt_alpha_bar_sample))) * noise
+
+        # use sqrt_alpha_bar as condition
+        return x_T # [B, 1, N, L]
+
+
+    def get_noise_level(self, t, snr_estimate):
+        """
+        noise level is sqrt alpha bar
+        """
+        return self.sqrt_alpha_bar[t]
+
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     diffusion_cos = GaussianDiffusion(schedule='cosine', n_timestep=1000, device='cpu')

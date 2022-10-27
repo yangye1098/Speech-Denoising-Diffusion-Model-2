@@ -9,3 +9,4 @@ from .UNetTST import UNetTST
 from .CAUNet import CAUNet
 from .tstnn import TSTNN
 from .diffwave import  DiffWave
+from .UNetModified2_withVariableNoiseLevel import UNetModified2_VariableNoiseLevel

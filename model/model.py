@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from base import BaseModel
-from .diffusion import GaussianDiffusion
+from .diffusion import VariableGaussianDiffusion, GaussianDiffusion
 from tqdm import tqdm
 
 class SDDM(BaseModel):
@@ -120,6 +120,82 @@ class SDDM(BaseModel):
                     x_t = self.diffusion.p_transition_supportive(x_t, t, predicted, condition)
                 elif self.p_transition == 'conditional':
                     x_t = self.diffusion.p_transition_conditional(x_t, t, predicted, condition)
+
+            return x_t
+
+
+
+class SDDM_with_SNREstimator(BaseModel):
+    def __init__(self, diffusion:VariableGaussianDiffusion, noise_estimate_model:nn.Module, snr_estimator:nn.Module, segmentor:nn.Module,
+                 noise_condition='sqrt_alpha_bar', p_transition='original', q_transition='original'):
+        super().__init__()
+        self.diffusion = diffusion
+        self.noise_estimate_model = noise_estimate_model
+        self.segmentor = segmentor
+        self.snr_estimator = snr_estimator
+
+        self.num_timesteps = self.diffusion.num_timesteps
+        self.noise_condition = noise_condition
+        self.p_transition = p_transition
+        self.q_transition = q_transition
+        if noise_condition != 'sqrt_alpha_bar' and noise_condition != 'time_step':
+            raise NotImplementedError
+
+        if p_transition != 'original' and p_transition != 'supportive' \
+                and p_transition != 'sr3' and p_transition != 'conditional' \
+                and p_transition != 'condition_in':
+            raise NotImplementedError
+
+        if q_transition != 'original' and q_transition != 'conditional':
+            raise NotImplementedError
+
+    # train step
+    def forward(self, target, condition):
+        """
+        target is the target source
+        condition is the noisy conditional input
+        """
+
+        # generate noise
+        if self.q_transition == 'original':
+            target = self.segmentor(target)
+            condition = self.segmentor(condition)
+            snr_estimation = self.snr_estimator(condition)
+            noise = torch.randn_like(target, device=target.device)
+            x_t, noise_level, t = self.diffusion.q_stochastic(target, noise, snr_estimation)
+            #x_t: [B, 1, N, L], noise_level: [B, 1, N, 1], t: [B, 1, 1,]
+            if self.noise_condition == 'sqrt_alpha_bar':
+                predicted = self.noise_estimate_model(condition, x_t, noise_level) #[B, 1, N, L]
+            elif self.noise_condition == 'time_step':
+                raise NotImplementedError
+
+        elif self.q_transition == 'conditional':
+            raise NotImplementedError
+
+        return predicted, noise
+
+    @torch.no_grad()
+    def infer(self, condition, continuous=False):
+        # condition is audio
+        # initial input
+
+        x_t = self.diffusion.get_x_T(condition)
+
+        # iterative refinement
+        snr_estimation, true_snr = self.snr_estimator(None, condition)
+        for t in reversed(range(1, self.num_timesteps+1)):
+            if self.noise_condition == 'sqrt_alpha_bar':
+                noise_level = self.diffusion.get_noise_level(t, snr_estimation)
+
+                predicted = self.noise_estimate_model(condition, x_t, noise_level)
+            elif self.noise_condition == 'time_step':
+                raise NotImplementedError
+
+            if self.p_transition == 'original' or self.p_transition == 'condition_in':
+                x_t = self.diffusion.p_transition(x_t, t, predicted)
+            else:
+
+                raise NotImplementedError
 
             return x_t
 

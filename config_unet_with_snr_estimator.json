@@ -1,0 +1,108 @@
+{
+    "name": "SDDM2_UNet_with_SNREstimator",
+    "n_gpu": 0,
+    "sample_rate": 16000,
+    "num_samples": 16448,
+    "arch": {
+        "type": "SDDM_with_SNREstimator",
+        "args": {
+            "noise_condition": "sqrt_alpha_bar",
+            "p_transition": "condition_in",
+            "q_transition": "original"
+        }
+    },
+
+    "diffusion": {
+        "type": "VariableGaussianDiffusion",
+        "args": {
+            "n_timestep": 100
+        }
+    },
+    "network": {
+        "type": "UNetModified2_VariableNoiseLevel",
+        "args": {
+            "in_channel": 2,
+            "out_channel": 1,
+            "inner_channel": 32,
+            "norm_groups": 32,
+            "channel_mults": [1,2,3,4,5],
+            "res_blocks": 1,
+            "dropout": 0
+        }
+    },
+    "snr_estimator": {
+        "type": "SNREstimator",
+        "args": {
+            "inner_channel": 32,
+            "norm_groups": 32,
+            "channel_mults": [1,2,3,4,5],
+            "res_blocks": 1,
+            "dropout": 0
+        }
+    },
+    "segmentor": {
+        "type": "Segmentor",
+        "args": {
+            "F": 128,
+            "stride": 64
+        }
+    },
+
+    "tr_dataset": {
+        "type": "AudioDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/train_28spk",
+            "datatype": ".wav"
+        }
+    },
+    "val_dataset": {
+        "type": "AudioDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/test",
+            "datatype": ".wav"
+        }
+    },
+
+    "infer_dataset": {
+        "type": "InferDataset",
+        "args":{
+            "data_root": "data/Voicebank-DEMAND/test",
+            "datatype": ".wav"
+        }
+    },
+    "data_loader": {
+        "type": "AudioDataLoader",
+        "args":{
+            "batch_size": 16,
+            "shuffle": true,
+            "validation_split": 0.0,
+            "num_workers": 4
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.002,
+            "weight_decay": 0,
+            "amsgrad": true
+        }
+    },
+    "loss": "l1_loss",
+    "metrics": [
+        "sisnr"
+    ],
+    "trainer": {
+        "epochs": 500,
+
+        "save_dir": "saved/",
+        "save_period": 10,
+        "verbosity": 2,
+        "n_valid_data_batch": 1,
+        "log_step": 100,
+        
+        "monitor": "min val_loss",
+        "early_stop": -1,
+
+        "tensorboard": true
+    }
+}
