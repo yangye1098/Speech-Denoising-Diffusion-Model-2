@@ -52,7 +52,7 @@ class PositionalEncoding(nn.Module):
         self.dim = dim
         half_dim = self.dim //2
         step = torch.arange(half_dim)
-        self.embedding_vector = 10.0 ** (step * 4.0/half_dim)
+        self.embedding_vector = 1e7 * 10.0 ** (-step * 4.0/half_dim)
 
 
     def forward(self, diffusion_step):
